@@ -34,6 +34,15 @@ if(MSVC)
     target_compile_options(da3_model_probe PRIVATE /W4 /permissive-)
 endif()
 
+add_executable(da3_encoder_probe
+    tools/encoder_probe.cpp
+    src/safetensors.cpp
+    src/encoder_cpu.cpp)
+target_include_directories(da3_encoder_probe PRIVATE include src)
+if(MSVC)
+    target_compile_options(da3_encoder_probe PRIVATE /W4 /permissive-)
+endif()
+
 include(CTest)
 if(BUILD_TESTING)
     add_executable(da3_c_abi_smoke tests/c_abi_smoke.c)
