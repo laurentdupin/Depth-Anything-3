@@ -64,7 +64,8 @@ if(DA3_WITH_VULKAN)
             elementwise gelu layer_norm linear linear16 linear_half
             linear16_half prepare_tokens position_bicubic project_tokens
             project_tokens_half relu softmax_lastdim
-            softmax_lastdim_half)
+            softmax_lastdim_half replace_token qk_rope capture_concat
+            add_uv exponential tokens_to_nchw)
         da3_compile_shader(${SHADER})
     endforeach()
 endif()
@@ -79,6 +80,8 @@ if(DA3_WITH_VULKAN)
         src/vulkan.cpp
         src/operators.cpp
         src/gpu_model.cpp
+        src/encoder_gpu.cpp
+        src/dpt_gpu.cpp
         ${DA3_SHADER_HEADERS})
     target_include_directories(
         depth_anything_3_native PRIVATE "${DA3_GENERATED_DIR}")
@@ -133,4 +136,21 @@ if(BUILD_TESTING)
         da3_c_abi_smoke PRIVATE depth_anything_3_native)
     target_include_directories(da3_c_abi_smoke PRIVATE include)
     add_test(NAME da3_c_abi_smoke COMMAND da3_c_abi_smoke)
+    if(DA3_WITH_VULKAN)
+        add_executable(
+            da3_gpu_full_graph_probe tools/gpu_full_graph_probe.cpp)
+        target_link_libraries(
+            da3_gpu_full_graph_probe PRIVATE depth_anything_3_native)
+        target_include_directories(
+            da3_gpu_full_graph_probe PRIVATE include)
+        add_executable(da3_gpu_encoder_probe
+            tools/gpu_encoder_probe.cpp
+            src/encoder_gpu.cpp src/vulkan.cpp src/operators.cpp
+            src/gpu_model.cpp src/safetensors.cpp
+            ${DA3_SHADER_HEADERS})
+        target_include_directories(da3_gpu_encoder_probe PRIVATE
+            include src "${DA3_GENERATED_DIR}")
+        target_link_libraries(
+            da3_gpu_encoder_probe PRIVATE Vulkan::Vulkan)
+    endif()
 endif()

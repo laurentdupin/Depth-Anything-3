@@ -1,0 +1,7 @@
+{
+	"InstallScripts" : 
+	[
+		"C:/Users/Frere/Source/GitRepos/ModelZoo/depth-anything-v3/native/build-cpu/cmake_install.cmake"
+	],
+	"Parallel" : false
+}

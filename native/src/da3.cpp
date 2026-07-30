@@ -3,6 +3,13 @@
 #include "dpt_cpu.h"
 #include "encoder_cpu.h"
 #include "safetensors.h"
+#if defined(DA3_WITH_VULKAN)
+#include "dpt_gpu.h"
+#include "encoder_gpu.h"
+#include "gpu_model.h"
+#include "operators.h"
+#include "vulkan.h"
+#endif
 
 #include <algorithm>
 #include <memory>
@@ -13,6 +20,11 @@
 
 struct da3_context {
     std::unique_ptr<da3_native::SafeTensors> model;
+#if defined(DA3_WITH_VULKAN)
+    std::unique_ptr<da3_native::VulkanContext> vulkan;
+    std::unique_ptr<da3_native::GpuModel> gpu_model;
+    std::unique_ptr<da3_native::VulkanOperators> operators;
+#endif
 };
 
 namespace {
@@ -48,7 +60,7 @@ uint32_t DA3_CALL da3_abi_version(void) {
 }
 
 const char* DA3_CALL da3_version_string(void) {
-    return "0.2.0-single-view-cpu";
+    return "0.3.0-single-view-cpu-vulkan";
 }
 
 const char* DA3_CALL da3_status_string(da3_status status) {
@@ -89,6 +101,38 @@ da3_status DA3_CALL da3_create(
     });
 }
 
+da3_status DA3_CALL da3_create_vulkan(
+    const char* model_path,
+    uint32_t device_index,
+    da3_context** context) {
+    if (!context) {
+        return fail(DA3_STATUS_INVALID_ARGUMENT, "context is null");
+    }
+    *context = nullptr;
+    if (!model_path || model_path[0] == '\0') {
+        return fail(DA3_STATUS_INVALID_ARGUMENT, "model path is empty");
+    }
+#if !defined(DA3_WITH_VULKAN)
+    (void)device_index;
+    return fail(
+        DA3_STATUS_VULKAN_UNAVAILABLE,
+        "this DLL was built without Vulkan");
+#else
+    return protect([&] {
+        auto result = std::make_unique<da3_context>();
+        result->model =
+            std::make_unique<da3_native::SafeTensors>(model_path);
+        result->vulkan =
+            std::make_unique<da3_native::VulkanContext>(device_index);
+        result->gpu_model = std::make_unique<da3_native::GpuModel>(
+            *result->model, *result->vulkan);
+        result->operators =
+            std::make_unique<da3_native::VulkanOperators>(*result->vulkan);
+        *context = result.release();
+    });
+#endif
+}
+
 void DA3_CALL da3_destroy(da3_context* context) {
     delete context;
 }
@@ -109,6 +153,28 @@ da3_status DA3_CALL da3_infer_tensor_f32(
             "invalid single-view tensor inference input");
     }
     return protect([&] {
+#if defined(DA3_WITH_VULKAN)
+        if (context->vulkan) {
+            const std::size_t input_bytes =
+                std::size_t(width) * height * 3 * sizeof(float);
+            da3_native::VulkanBuffer image =
+                context->vulkan->create_device_buffer(input_bytes);
+            context->vulkan->upload(image, input, input_bytes);
+            da3_native::GpuFeatureMap result =
+                da3_native::depth_head_single_view_gpu(
+                    *context->vulkan, *context->gpu_model,
+                    *context->operators,
+                    da3_native::encoder_single_view_gpu(
+                        *context->vulkan, *context->gpu_model,
+                        *context->operators, image,
+                        static_cast<std::uint32_t>(width),
+                        static_cast<std::uint32_t>(height)));
+            context->vulkan->download(
+                result.buffer, depth,
+                std::size_t(width) * height * sizeof(float));
+            return;
+        }
+#endif
         std::vector<float> result =
             da3_native::depth_head_single_view_cpu(
                 *context->model,

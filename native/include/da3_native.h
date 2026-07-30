@@ -19,7 +19,7 @@
 extern "C" {
 #endif
 
-#define DA3_ABI_VERSION 1u
+#define DA3_ABI_VERSION 2u
 
 typedef struct da3_context da3_context;
 
@@ -42,6 +42,14 @@ DA3_API const char* DA3_CALL da3_status_string(da3_status status);
 DA3_API const char* DA3_CALL da3_last_error(void);
 DA3_API da3_status DA3_CALL da3_create(
     const char* model_safetensors_path_utf8,
+    da3_context** context);
+/*
+ * Creates a real full-graph Vulkan context on the zero-based physical-device
+ * index. Failure is reported; this function never falls back to CPU.
+ */
+DA3_API da3_status DA3_CALL da3_create_vulkan(
+    const char* model_safetensors_path_utf8,
+    uint32_t device_index,
     da3_context** context);
 DA3_API void DA3_CALL da3_destroy(da3_context* context);
 /*

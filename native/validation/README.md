@@ -43,6 +43,27 @@ deterministic normalized FP32 tensors:
 
 Camera, ray, Gaussian-splat, confidence, and multi-view outputs are not
 required by InferBridge's single-image depth channel and are intentionally
-outside this lean inference slice. The present implementation is a
-correctness-first CPU oracle. It does not advertise Vulkan or zero-copy GPU
-capability.
+outside this lean inference slice.
+
+The additive ABI 2 `da3_create_vulkan` path maps the same canonical
+safetensors file directly into a dependency-free Vulkan full graph. It keeps
+all intermediate transformer and DPT tensors on the selected GPU; the current
+tensor ABI performs only the caller's input upload and final depth download.
+It fails rather than silently falling back to CPU.
+
+| GPU | 28x28 relative L1 | 56x56 relative L1 |
+|---|---:|---:|
+| Radeon RX 9070 | `0.006247%` | `0.021963%` |
+| GeForce GTX 1080 | `0.006253%` | `0.021954%` |
+| Radeon RX 6700 XT | `0.006225%` | `0.021952%` |
+
+Twenty consecutive 56x56 calls on persistent contexts completed on every
+device. The concurrent canary medians were 23.87 ms (RX 9070), 29.91 ms
+(GTX 1080), and 22.14 ms (RX 6700 XT); these are stability canaries rather
+than isolated performance benchmarks.
+
+The FP32 GPU baseline covers camera-token replacement, Q/K normalization,
+local and global RoPE, local/global capture concatenation, the complete main
+DPT branch, UV embeddings, and exponential metric depth. Mixed precision
+remains disabled until a separate accuracy gate is added. External
+GPU-resource import/export is not advertised by DA3 yet.

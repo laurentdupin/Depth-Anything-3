@@ -1,0 +1,14 @@
+C:/Users/Frere/Source/GitRepos/ModelZoo/depth-anything-v3/native/build-vulkan/CMakeFiles/depth_anything_3_native.dir
+C:/Users/Frere/Source/GitRepos/ModelZoo/depth-anything-v3/native/build-vulkan/CMakeFiles/da3_model_probe.dir
+C:/Users/Frere/Source/GitRepos/ModelZoo/depth-anything-v3/native/build-vulkan/CMakeFiles/da3_encoder_probe.dir
+C:/Users/Frere/Source/GitRepos/ModelZoo/depth-anything-v3/native/build-vulkan/CMakeFiles/da3_full_graph_probe.dir
+C:/Users/Frere/Source/GitRepos/ModelZoo/depth-anything-v3/native/build-vulkan/CMakeFiles/Experimental.dir
+C:/Users/Frere/Source/GitRepos/ModelZoo/depth-anything-v3/native/build-vulkan/CMakeFiles/Nightly.dir
+C:/Users/Frere/Source/GitRepos/ModelZoo/depth-anything-v3/native/build-vulkan/CMakeFiles/Continuous.dir
+C:/Users/Frere/Source/GitRepos/ModelZoo/depth-anything-v3/native/build-vulkan/CMakeFiles/NightlyMemoryCheck.dir
+C:/Users/Frere/Source/GitRepos/ModelZoo/depth-anything-v3/native/build-vulkan/CMakeFiles/da3_c_abi_smoke.dir
+C:/Users/Frere/Source/GitRepos/ModelZoo/depth-anything-v3/native/build-vulkan/CMakeFiles/da3_gpu_full_graph_probe.dir
+C:/Users/Frere/Source/GitRepos/ModelZoo/depth-anything-v3/native/build-vulkan/CMakeFiles/da3_gpu_encoder_probe.dir
+C:/Users/Frere/Source/GitRepos/ModelZoo/depth-anything-v3/native/build-vulkan/CMakeFiles/RUN_TESTS.dir
+C:/Users/Frere/Source/GitRepos/ModelZoo/depth-anything-v3/native/build-vulkan/CMakeFiles/ALL_BUILD.dir
+C:/Users/Frere/Source/GitRepos/ModelZoo/depth-anything-v3/native/build-vulkan/CMakeFiles/ZERO_CHECK.dir

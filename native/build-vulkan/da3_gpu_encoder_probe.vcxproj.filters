@@ -1,0 +1,345 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <ClCompile Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\tools\gpu_encoder_probe.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\src\encoder_gpu.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\src\vulkan.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\src\operators.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\src\gpu_model.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+    <ClCompile Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\src\safetensors.cpp">
+      <Filter>Source Files</Filter>
+    </ClCompile>
+  </ItemGroup>
+  <ItemGroup>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\add_scaled_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\add_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\add_position_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\bilinear_align_true_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\bilinear_align_true_image_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\bmm_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\bmm_score_half_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\bmm_value_half_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\conv2d_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\conv2d8_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\conv2d_half_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\conv2d8_half_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\conv_transpose_nonoverlap_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\conv_transpose_nonoverlap_half_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\elementwise_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\gelu_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\layer_norm_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\linear_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\linear16_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\linear_half_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\linear16_half_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\prepare_tokens_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\position_bicubic_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\project_tokens_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\project_tokens_half_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\relu_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\softmax_lastdim_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\softmax_lastdim_half_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\replace_token_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\qk_rope_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\capture_concat_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\add_uv_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\exponential_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+    <ClInclude Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\generated\tokens_to_nchw_spv.h">
+      <Filter>Header Files</Filter>
+    </ClInclude>
+  </ItemGroup>
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\add_scaled.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\add_scaled_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\add.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\add_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\add_position.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\add_position_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\bilinear_align_true.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\bilinear_align_true_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\bilinear_align_true_image.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\bilinear_align_true_image_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\bmm.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\bmm_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\bmm_score_half.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\bmm_score_half_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\bmm_value_half.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\bmm_value_half_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\conv2d.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\conv2d_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\conv2d8.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\conv2d8_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\conv2d_half.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\conv2d_half_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\conv2d8_half.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\conv2d8_half_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\conv_transpose_nonoverlap.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\conv_transpose_nonoverlap_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\conv_transpose_nonoverlap_half.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\conv_transpose_nonoverlap_half_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\elementwise.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\elementwise_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\gelu.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\gelu_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\layer_norm.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\layer_norm_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\linear.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\linear_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\linear16.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\linear16_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\linear_half.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\linear_half_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\linear16_half.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\linear16_half_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\prepare_tokens.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\prepare_tokens_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\position_bicubic.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\position_bicubic_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\project_tokens.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\project_tokens_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\project_tokens_half.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\project_tokens_half_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\relu.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\relu_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\softmax_lastdim.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\softmax_lastdim_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\softmax_lastdim_half.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\softmax_lastdim_half_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\replace_token.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\replace_token_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\qk_rope.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\qk_rope_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\capture_concat.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\capture_concat_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\add_uv.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\add_uv_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\exponential.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\exponential_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\tokens_to_nchw.spv.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\bb33312117d7825cf921d129d90f0f21\tokens_to_nchw_spv.h.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{91F24B75-1187-3FC8-82E0-DC9ADFBFABC3}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Header Files">
+      <UniqueIdentifier>{40771AE2-3E5A-34B0-95CC-ABC30C338346}</UniqueIdentifier>
+    </Filter>
+    <Filter Include="Source Files">
+      <UniqueIdentifier>{0B34FF4F-BA54-352D-8A5E-44E08D583EDA}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

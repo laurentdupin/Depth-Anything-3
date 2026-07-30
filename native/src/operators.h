@@ -127,6 +127,28 @@ public:
         const VulkanBuffer& right,
         std::uint32_t count);
 
+    void replace_token(
+        VulkanBuffer& state, const VulkanBuffer& token,
+        std::uint32_t columns);
+    void qk_norm_rope(
+        VulkanBuffer& qkv,
+        const VulkanBuffer& q_scale, const VulkanBuffer& q_bias,
+        const VulkanBuffer& k_scale, const VulkanBuffer& k_bias,
+        std::uint32_t tokens, std::uint32_t heads,
+        std::uint32_t patch_width, std::uint32_t mode);
+    void capture_concat(
+        VulkanBuffer& output, const VulkanBuffer& local,
+        const VulkanBuffer& global, std::uint32_t patches,
+        std::uint32_t embedding);
+    void add_uv(
+        VulkanBuffer& values, std::uint32_t width, std::uint32_t height,
+        std::uint32_t channels, std::uint32_t image_width,
+        std::uint32_t image_height);
+    void exponential(VulkanBuffer& values, std::uint32_t count);
+    void tokens_to_nchw(
+        VulkanBuffer& output, const VulkanBuffer& input,
+        std::uint32_t patches, std::uint32_t channels);
+
 private:
     VulkanContext& context_;
     VulkanPipeline linear_;
@@ -156,6 +178,12 @@ private:
     VulkanPipeline bilinear_align_true_;
     VulkanPipeline bilinear_align_true_image_;
     VulkanPipeline relu_;
+    VulkanPipeline replace_token_;
+    VulkanPipeline qk_rope_;
+    VulkanPipeline capture_concat_;
+    VulkanPipeline add_uv_;
+    VulkanPipeline exponential_;
+    VulkanPipeline tokens_to_nchw_;
 };
 
 }  // namespace da3_native

@@ -1,0 +1,17 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project ToolsVersion="18.0" xmlns="http://schemas.microsoft.com/developer/msbuild/2003">
+  <ItemGroup>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\1dfbd62c24181581e985114ea2f4f403\Experimental.rule">
+      <Filter>CMake Rules</Filter>
+    </CustomBuild>
+    <CustomBuild Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\CMakeLists.txt" />
+  </ItemGroup>
+  <ItemGroup>
+    <None Include="C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\CMakeFiles\Experimental" />
+  </ItemGroup>
+  <ItemGroup>
+    <Filter Include="CMake Rules">
+      <UniqueIdentifier>{91F24B75-1187-3FC8-82E0-DC9ADFBFABC3}</UniqueIdentifier>
+    </Filter>
+  </ItemGroup>
+</Project>

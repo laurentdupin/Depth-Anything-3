@@ -1,0 +1,6 @@
+C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\tools\gpu_encoder_probe.cpp;C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\da3_gpu_encoder_probe.dir\Release\gpu_encoder_probe.obj
+C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\src\encoder_gpu.cpp;C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\da3_gpu_encoder_probe.dir\Release\encoder_gpu.obj
+C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\src\vulkan.cpp;C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\da3_gpu_encoder_probe.dir\Release\vulkan.obj
+C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\src\operators.cpp;C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\da3_gpu_encoder_probe.dir\Release\operators.obj
+C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\src\gpu_model.cpp;C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\da3_gpu_encoder_probe.dir\Release\gpu_model.obj
+C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\src\safetensors.cpp;C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\da3_gpu_encoder_probe.dir\Release\safetensors.obj

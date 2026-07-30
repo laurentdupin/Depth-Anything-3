@@ -1,0 +1,29 @@
+﻿<?xml version="1.0" encoding="utf-8"?>
+<Project>
+  <ProjectOutputs>
+    <ProjectOutput>
+      <FullPath>C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-cpu\x64\Release\ZERO_CHECK</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-cpu\Release\depth_anything_3_native.dll</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-cpu\Release\da3_c_abi_smoke.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-cpu\Release\da3_encoder_probe.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-cpu\Release\da3_full_graph_probe.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-cpu\Release\da3_model_probe.exe</FullPath>
+    </ProjectOutput>
+    <ProjectOutput>
+      <FullPath>C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-cpu\x64\Release\ALL_BUILD</FullPath>
+    </ProjectOutput>
+  </ProjectOutputs>
+  <ContentFiles />
+  <SatelliteDlls />
+  <NonRecipeFileRefs />
+</Project>

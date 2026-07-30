@@ -1,0 +1,12 @@
+C:/Users/Frere/Source/GitRepos/ModelZoo/depth-anything-v3/native/build-cpu/CMakeFiles/depth_anything_3_native.dir
+C:/Users/Frere/Source/GitRepos/ModelZoo/depth-anything-v3/native/build-cpu/CMakeFiles/da3_model_probe.dir
+C:/Users/Frere/Source/GitRepos/ModelZoo/depth-anything-v3/native/build-cpu/CMakeFiles/da3_encoder_probe.dir
+C:/Users/Frere/Source/GitRepos/ModelZoo/depth-anything-v3/native/build-cpu/CMakeFiles/da3_full_graph_probe.dir
+C:/Users/Frere/Source/GitRepos/ModelZoo/depth-anything-v3/native/build-cpu/CMakeFiles/Experimental.dir
+C:/Users/Frere/Source/GitRepos/ModelZoo/depth-anything-v3/native/build-cpu/CMakeFiles/Nightly.dir
+C:/Users/Frere/Source/GitRepos/ModelZoo/depth-anything-v3/native/build-cpu/CMakeFiles/Continuous.dir
+C:/Users/Frere/Source/GitRepos/ModelZoo/depth-anything-v3/native/build-cpu/CMakeFiles/NightlyMemoryCheck.dir
+C:/Users/Frere/Source/GitRepos/ModelZoo/depth-anything-v3/native/build-cpu/CMakeFiles/da3_c_abi_smoke.dir
+C:/Users/Frere/Source/GitRepos/ModelZoo/depth-anything-v3/native/build-cpu/CMakeFiles/RUN_TESTS.dir
+C:/Users/Frere/Source/GitRepos/ModelZoo/depth-anything-v3/native/build-cpu/CMakeFiles/ALL_BUILD.dir
+C:/Users/Frere/Source/GitRepos/ModelZoo/depth-anything-v3/native/build-cpu/CMakeFiles/ZERO_CHECK.dir

@@ -27,6 +27,12 @@
 #include "relu_spv.h"
 #include "softmax_lastdim_spv.h"
 #include "softmax_lastdim_half_spv.h"
+#include "replace_token_spv.h"
+#include "qk_rope_spv.h"
+#include "capture_concat_spv.h"
+#include "add_uv_spv.h"
+#include "exponential_spv.h"
+#include "tokens_to_nchw_spv.h"
 
 #include <limits>
 #include <stdexcept>
@@ -178,7 +184,19 @@ VulkanOperators::VulkanOperators(VulkanContext& context)
           },
           16)),
       relu_(context.create_pipeline(
-          da3_relu_spv, da3_relu_spv_size, 2, 4)) {
+          da3_relu_spv, da3_relu_spv_size, 2, 4)),
+      replace_token_(context.create_pipeline(
+          da3_replace_token_spv, da3_replace_token_spv_size, 2, 4)),
+      qk_rope_(context.create_pipeline(
+          da3_qk_rope_spv, da3_qk_rope_spv_size, 5, 16)),
+      capture_concat_(context.create_pipeline(
+          da3_capture_concat_spv, da3_capture_concat_spv_size, 3, 8)),
+      add_uv_(context.create_pipeline(
+          da3_add_uv_spv, da3_add_uv_spv_size, 1, 20)),
+      exponential_(context.create_pipeline(
+          da3_exponential_spv, da3_exponential_spv_size, 1, 4)),
+      tokens_to_nchw_(context.create_pipeline(
+          da3_tokens_to_nchw_spv, da3_tokens_to_nchw_spv_size, 2, 8)) {
     linear_.set_debug_name("linear");
     linear16_.set_debug_name("linear16");
     linear_half_.set_debug_name("linear_half");
@@ -212,6 +230,12 @@ VulkanOperators::VulkanOperators(VulkanContext& context)
     bilinear_align_true_image_.set_debug_name(
         "bilinear_align_true_image");
     relu_.set_debug_name("relu");
+    replace_token_.set_debug_name("replace_token");
+    qk_rope_.set_debug_name("qk_rope");
+    capture_concat_.set_debug_name("capture_concat");
+    add_uv_.set_debug_name("add_uv");
+    exponential_.set_debug_name("exponential");
+    tokens_to_nchw_.set_debug_name("tokens_to_nchw");
 }
 
 void VulkanOperators::linear(
@@ -882,6 +906,99 @@ void VulkanOperators::add(
     context_.dispatch(
         add_, {&output, &left, &right}, &count, sizeof(count),
         divide_up(count, 256));
+}
+
+void VulkanOperators::replace_token(
+    VulkanBuffer& state, const VulkanBuffer& token,
+    std::uint32_t columns) {
+    require_bytes(state, columns, "state");
+    require_bytes(token, columns, "token");
+    context_.dispatch(
+        replace_token_, {&state, &token}, &columns, sizeof(columns),
+        divide_up(columns, 256));
+}
+
+void VulkanOperators::qk_norm_rope(
+    VulkanBuffer& qkv,
+    const VulkanBuffer& q_scale, const VulkanBuffer& q_bias,
+    const VulkanBuffer& k_scale, const VulkanBuffer& k_bias,
+    std::uint32_t tokens, std::uint32_t heads,
+    std::uint32_t patch_width, std::uint32_t mode) {
+    if (tokens == 0 || heads == 0 || patch_width == 0 ||
+        (mode != 1 && mode != 2)) {
+        throw std::invalid_argument("invalid QK/RoPE parameters");
+    }
+    require_bytes(qkv, std::uint64_t(tokens) * heads * 64 * 3, "QKV");
+    require_bytes(q_scale, 64, "Q scale");
+    require_bytes(q_bias, 64, "Q bias");
+    require_bytes(k_scale, 64, "K scale");
+    require_bytes(k_bias, 64, "K bias");
+    struct Parameters {
+        std::uint32_t tokens, heads, patch_width, mode;
+    } parameters{tokens, heads, patch_width, mode};
+    context_.dispatch(
+        qk_rope_, {&qkv, &q_scale, &q_bias, &k_scale, &k_bias},
+        &parameters, sizeof(parameters), tokens * heads * 2);
+}
+
+void VulkanOperators::capture_concat(
+    VulkanBuffer& output, const VulkanBuffer& local,
+    const VulkanBuffer& global, std::uint32_t patches,
+    std::uint32_t embedding) {
+    const std::uint64_t output_count =
+        std::uint64_t(patches) * embedding * 2;
+    require_bytes(output, output_count, "capture output");
+    require_bytes(local, std::uint64_t(patches + 1) * embedding, "local");
+    require_bytes(global, std::uint64_t(patches + 1) * embedding, "global");
+    struct Parameters {
+        std::uint32_t patches, embedding;
+    } parameters{patches, embedding};
+    context_.dispatch(
+        capture_concat_, {&output, &local, &global},
+        &parameters, sizeof(parameters),
+        divide_up(static_cast<std::uint32_t>(output_count), 256));
+}
+
+void VulkanOperators::add_uv(
+    VulkanBuffer& values, std::uint32_t width, std::uint32_t height,
+    std::uint32_t channels, std::uint32_t image_width,
+    std::uint32_t image_height) {
+    if (width == 0 || height == 0 || channels == 0 ||
+        channels % 4 != 0 || image_width == 0 || image_height == 0) {
+        throw std::invalid_argument("invalid UV dimensions");
+    }
+    const std::uint64_t count =
+        std::uint64_t(width) * height * channels;
+    require_bytes(values, count, "UV values");
+    struct Parameters {
+        std::uint32_t width, height, channels, image_width, image_height;
+    } parameters{width, height, channels, image_width, image_height};
+    context_.dispatch(
+        add_uv_, {&values}, &parameters, sizeof(parameters),
+        divide_up(static_cast<std::uint32_t>(count), 256));
+}
+
+void VulkanOperators::exponential(
+    VulkanBuffer& values, std::uint32_t count) {
+    require_bytes(values, count, "exponential values");
+    context_.dispatch(
+        exponential_, {&values}, &count, sizeof(count),
+        divide_up(count, 256));
+}
+
+void VulkanOperators::tokens_to_nchw(
+    VulkanBuffer& output, const VulkanBuffer& input,
+    std::uint32_t patches, std::uint32_t channels) {
+    const std::uint64_t count = std::uint64_t(patches) * channels;
+    require_bytes(output, count, "NCHW output");
+    require_bytes(input, count, "token input");
+    struct Parameters {
+        std::uint32_t patches, channels;
+    } parameters{patches, channels};
+    context_.dispatch(
+        tokens_to_nchw_, {&output, &input},
+        &parameters, sizeof(parameters),
+        divide_up(static_cast<std::uint32_t>(count), 256));
 }
 
 }  // namespace da3_native

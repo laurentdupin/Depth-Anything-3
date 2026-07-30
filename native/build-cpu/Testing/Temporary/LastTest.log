@@ -1,0 +1,18 @@
+Start testing: Jul 30 16:16 Paris, Madrid (heure dfete)
+----------------------------------------------------------
+1/1 Testing: da3_c_abi_smoke
+1/1 Test: da3_c_abi_smoke
+Command: "C:/Users/Frere/Source/GitRepos/ModelZoo/depth-anything-v3/native/build-cpu/Release/da3_c_abi_smoke.exe"
+Directory: C:/Users/Frere/Source/GitRepos/ModelZoo/depth-anything-v3/native/build-cpu
+"da3_c_abi_smoke" start time: Jul 30 16:16 Paris, Madrid (heure dfete)
+Output:
+----------------------------------------------------------
+<end of output>
+Test time =   0.07 sec
+----------------------------------------------------------
+Test Passed.
+"da3_c_abi_smoke" end time: Jul 30 16:16 Paris, Madrid (heure dfete)
+"da3_c_abi_smoke" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Jul 30 16:16 Paris, Madrid (heure dfete)
