@@ -35,3 +35,4 @@ src/outputs
 temp*.png
 /outputs
 /checkpoints/
+/native/build-*/

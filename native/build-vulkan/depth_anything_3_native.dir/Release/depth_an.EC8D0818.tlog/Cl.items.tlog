@@ -1,9 +1,0 @@
-C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\src\da3.cpp;C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\depth_anything_3_native.dir\Release\da3.obj
-C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\src\safetensors.cpp;C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\depth_anything_3_native.dir\Release\safetensors.obj
-C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\src\encoder_cpu.cpp;C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\depth_anything_3_native.dir\Release\encoder_cpu.obj
-C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\src\dpt_cpu.cpp;C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\depth_anything_3_native.dir\Release\dpt_cpu.obj
-C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\src\vulkan.cpp;C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\depth_anything_3_native.dir\Release\vulkan.obj
-C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\src\operators.cpp;C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\depth_anything_3_native.dir\Release\operators.obj
-C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\src\gpu_model.cpp;C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\depth_anything_3_native.dir\Release\gpu_model.obj
-C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\src\encoder_gpu.cpp;C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\depth_anything_3_native.dir\Release\encoder_gpu.obj
-C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\src\dpt_gpu.cpp;C:\Users\Frere\Source\GitRepos\ModelZoo\depth-anything-v3\native\build-vulkan\depth_anything_3_native.dir\Release\dpt_gpu.obj
