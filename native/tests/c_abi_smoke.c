@@ -12,6 +12,13 @@ int main(void) {
     assert(
         da3_create(0, &context) == DA3_STATUS_INVALID_ARGUMENT);
     assert(context == 0);
+    assert(
+        da3_inferbridge_image_shape(
+            0, 0, 0, 0, 0) == DA3_STATUS_INVALID_ARGUMENT);
+    assert(
+        da3_infer_bgra8_f32(
+            0, 0, 0, 0, 0, 0, 0, 0) ==
+        DA3_STATUS_INVALID_ARGUMENT);
     da3_destroy(0);
     return 0;
 }

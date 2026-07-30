@@ -2,6 +2,7 @@
 
 #include "dpt_cpu.h"
 #include "encoder_cpu.h"
+#include "image.h"
 #include "safetensors.h"
 #if defined(DA3_WITH_VULKAN)
 #include "dpt_gpu.h"
@@ -60,7 +61,7 @@ uint32_t DA3_CALL da3_abi_version(void) {
 }
 
 const char* DA3_CALL da3_version_string(void) {
-    return "0.3.0-single-view-cpu-vulkan";
+    return "0.4.0-single-view-image-cpu-vulkan";
 }
 
 const char* DA3_CALL da3_status_string(da3_status status) {
@@ -182,6 +183,97 @@ da3_status DA3_CALL da3_infer_tensor_f32(
                     *context->model, input,
                     static_cast<std::uint32_t>(width),
                     static_cast<std::uint32_t>(height)));
+        std::copy(result.begin(), result.end(), depth);
+    });
+}
+
+da3_status DA3_CALL da3_inferbridge_image_shape(
+    int32_t image_width,
+    int32_t image_height,
+    int32_t process_resolution,
+    int32_t* depth_width,
+    int32_t* depth_height) {
+    if (image_width <= 0 || image_height <= 0 ||
+        process_resolution <= 0 || !depth_width || !depth_height) {
+        return fail(
+            DA3_STATUS_INVALID_ARGUMENT,
+            "invalid DA3 image shape input");
+    }
+    return protect([&] {
+        const da3_native::ImageShape shape =
+            da3_native::inferbridge_image_shape(
+                static_cast<std::uint32_t>(image_width),
+                static_cast<std::uint32_t>(image_height),
+                static_cast<std::uint32_t>(process_resolution));
+        *depth_width = static_cast<int32_t>(shape.width);
+        *depth_height = static_cast<int32_t>(shape.height);
+    });
+}
+
+da3_status DA3_CALL da3_infer_bgra8_f32(
+    da3_context* context,
+    const uint8_t* bgra,
+    uint64_t bgra_stride_bytes,
+    int32_t image_width,
+    int32_t image_height,
+    int32_t process_resolution,
+    float* depth,
+    uint64_t depth_elements) {
+    if (!context || !context->model || !bgra || !depth ||
+        image_width <= 0 || image_height <= 0 ||
+        process_resolution <= 0 ||
+        bgra_stride_bytes <
+            static_cast<std::uint64_t>(image_width) * 4) {
+        return fail(
+            DA3_STATUS_INVALID_ARGUMENT,
+            "invalid DA3 BGRA image inference input");
+    }
+    return protect([&] {
+        const da3_native::ImageShape shape =
+            da3_native::inferbridge_image_shape(
+                static_cast<std::uint32_t>(image_width),
+                static_cast<std::uint32_t>(image_height),
+                static_cast<std::uint32_t>(process_resolution));
+        if (depth_elements <
+            std::uint64_t(shape.width) * shape.height) {
+            throw std::invalid_argument(
+                "DA3 image inference output buffer is too small");
+        }
+        std::vector<float> prepared =
+            da3_native::preprocess_inferbridge_bgra8(
+                bgra, static_cast<std::size_t>(bgra_stride_bytes),
+                static_cast<std::uint32_t>(image_width),
+                static_cast<std::uint32_t>(image_height),
+                static_cast<std::uint32_t>(process_resolution));
+#if defined(DA3_WITH_VULKAN)
+        if (context->vulkan) {
+            da3_native::VulkanBuffer image =
+                context->vulkan->create_device_buffer(
+                    prepared.size() * sizeof(float));
+            context->vulkan->upload(
+                image, prepared.data(),
+                prepared.size() * sizeof(float));
+            da3_native::GpuFeatureMap result =
+                da3_native::depth_head_single_view_gpu(
+                    *context->vulkan, *context->gpu_model,
+                    *context->operators,
+                    da3_native::encoder_single_view_gpu(
+                        *context->vulkan, *context->gpu_model,
+                        *context->operators, image,
+                        shape.width, shape.height));
+            context->vulkan->download(
+                result.buffer, depth,
+                std::uint64_t(shape.width) * shape.height *
+                    sizeof(float));
+            return;
+        }
+#endif
+        std::vector<float> result =
+            da3_native::depth_head_single_view_cpu(
+                *context->model,
+                da3_native::encoder_single_view_cpu(
+                    *context->model, prepared.data(),
+                    shape.width, shape.height));
         std::copy(result.begin(), result.end(), depth);
     });
 }

@@ -67,3 +67,19 @@ local and global RoPE, local/global capture concatenation, the complete main
 DPT branch, UV embeddings, and exponential metric depth. Mixed precision
 remains disabled until a separate accuracy gate is added. External
 GPU-resource import/export is not advertised by DA3 yet.
+
+## InferBridge image contract
+
+ABI 3 adds `da3_inferbridge_image_shape` and
+`da3_infer_bgra8_f32`. The latter matches the current Python worker rather
+than assuming an idealized RGB input: it preserves the first three BGR bytes
+from the BGRA capture as the RGB-ordered numpy image consumed by DA3, applies
+upper-bound resizing, rounds each dimension to a multiple of 14, and performs
+ImageNet normalization. Depth remains at the processed resolution, matching
+the worker's output header.
+
+For a deterministic 83x61 BGRA image at process resolution 56, Python CPU and
+Vulkan on the RX 9070, GTX 1080, and RX 6700 XT all produced 42x56 depth. Mean
+relative error was `0.00950%`, maximum relative error `0.02059%`, and maximum
+absolute error was `0.000192` on all three.
+`native/tools/validate_image_path.py` reproduces this canary.

@@ -19,7 +19,7 @@
 extern "C" {
 #endif
 
-#define DA3_ABI_VERSION 2u
+#define DA3_ABI_VERSION 3u
 
 typedef struct da3_context da3_context;
 
@@ -62,6 +62,28 @@ DA3_API da3_status DA3_CALL da3_infer_tensor_f32(
     const float* normalized_rgb_chw,
     int32_t width,
     int32_t height,
+    float* depth_hw,
+    uint64_t depth_elements);
+
+DA3_API da3_status DA3_CALL da3_inferbridge_image_shape(
+    int32_t image_width,
+    int32_t image_height,
+    int32_t process_resolution,
+    int32_t* depth_width,
+    int32_t* depth_height);
+
+/*
+ * Reproduces the current InferBridge worker's BGRA/BGR byte ordering,
+ * upper-bound resizing, patch rounding, and ImageNet normalization. Output
+ * dimensions are returned by da3_inferbridge_image_shape.
+ */
+DA3_API da3_status DA3_CALL da3_infer_bgra8_f32(
+    da3_context* context,
+    const uint8_t* bgra,
+    uint64_t bgra_stride_bytes,
+    int32_t image_width,
+    int32_t image_height,
+    int32_t process_resolution,
     float* depth_hw,
     uint64_t depth_elements);
 

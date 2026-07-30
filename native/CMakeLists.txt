@@ -72,6 +72,7 @@ endif()
 
 add_library(depth_anything_3_native SHARED
     src/da3.cpp
+    src/image.cpp
     src/safetensors.cpp
     src/encoder_cpu.cpp
     src/dpt_cpu.cpp)
