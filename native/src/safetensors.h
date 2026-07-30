@@ -50,6 +50,7 @@ private:
     std::uint64_t size_ = 0;
     std::vector<std::string> names_;
     std::unordered_map<std::string, TensorView> tensors_;
+    std::unordered_map<std::string, std::string> aliases_;
 };
 
 }  // namespace da3_native

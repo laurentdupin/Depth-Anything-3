@@ -13,6 +13,8 @@ int main(int argc, char** argv) {
             "model.backbone.pretrained.patch_embed.proj.weight");
         const bool expected =
             model.tensor_count() == 437 &&
+            model.contains(
+                "model.head.scratch.output_conv2_aux.3.2.weight") &&
             patch.rank == 4 &&
             patch.dimensions[0] == 384 &&
             patch.dimensions[1] == 3 &&

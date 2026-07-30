@@ -27,8 +27,11 @@ struct ParsedTensor {
 
 class Json {
 public:
-    Json(const char* begin, const char* end)
-        : current_(begin), end_(end) {}
+    Json(
+        const char* begin,
+        const char* end,
+        std::vector<std::pair<std::string, std::string>>& aliases)
+        : current_(begin), end_(end), aliases_(aliases) {}
 
     std::vector<ParsedTensor> parse_root() {
         std::vector<ParsedTensor> result;
@@ -44,7 +47,7 @@ public:
             expect(':');
             whitespace();
             if (name == "__metadata__") {
-                skip_value();
+                metadata();
             } else {
                 result.push_back(tensor(name));
             }
@@ -260,6 +263,29 @@ private:
         }
     }
 
+    void metadata() {
+        expect('{');
+        whitespace();
+        if (consume('}')) {
+            return;
+        }
+        for (;;) {
+            std::string alias = string();
+            whitespace();
+            expect(':');
+            whitespace();
+            std::string target = string();
+            aliases_.emplace_back(
+                std::move(alias), std::move(target));
+            whitespace();
+            if (consume('}')) {
+                return;
+            }
+            expect(',');
+            whitespace();
+        }
+    }
+
     ParsedTensor tensor(const std::string& name) {
         ParsedTensor result;
         result.name = name;
@@ -330,6 +356,7 @@ private:
 
     const char* current_;
     const char* end_;
+    std::vector<std::pair<std::string, std::string>>& aliases_;
 };
 
 #if defined(_WIN32)
@@ -425,8 +452,9 @@ SafeTensors::SafeTensors(const std::string& path_utf8) {
         const std::uint64_t data_offset = 8 + header_bytes;
         const char* json_begin =
             reinterpret_cast<const char*>(view_ + 8);
+        std::vector<std::pair<std::string, std::string>> aliases;
         std::vector<ParsedTensor> parsed = Json(
-            json_begin, json_begin + header_bytes).parse_root();
+            json_begin, json_begin + header_bytes, aliases).parse_root();
         if (parsed.empty() || parsed.size() > 4096) {
             throw std::runtime_error("invalid safetensors tensor count");
         }
@@ -480,6 +508,18 @@ SafeTensors::SafeTensors(const std::string& path_utf8) {
         if (cursor != size_ - data_offset) {
             throw std::runtime_error("unclaimed safetensors payload bytes");
         }
+        aliases_.reserve(aliases.size());
+        for (auto& alias : aliases) {
+            if (alias.first.empty() ||
+                tensors_.find(alias.first) != tensors_.end() ||
+                tensors_.find(alias.second) == tensors_.end() ||
+                !aliases_.emplace(
+                    std::move(alias.first),
+                    std::move(alias.second)).second) {
+                throw std::runtime_error(
+                    "invalid safetensors shared-tensor alias");
+            }
+        }
     } catch (...) {
         close();
         throw;
@@ -492,6 +532,7 @@ SafeTensors::~SafeTensors() {
 
 void SafeTensors::close() noexcept {
     tensors_.clear();
+    aliases_.clear();
     names_.clear();
 #if defined(_WIN32)
     if (view_) {
@@ -522,7 +563,14 @@ void SafeTensors::close() noexcept {
 }
 
 const TensorView& SafeTensors::tensor(std::string_view name) const {
-    const auto found = tensors_.find(std::string(name));
+    const std::string key(name);
+    auto found = tensors_.find(key);
+    if (found == tensors_.end()) {
+        const auto alias = aliases_.find(key);
+        if (alias != aliases_.end()) {
+            found = tensors_.find(alias->second);
+        }
+    }
     if (found == tensors_.end()) {
         throw std::runtime_error(
             "model is missing tensor: " + std::string(name));
@@ -531,7 +579,9 @@ const TensorView& SafeTensors::tensor(std::string_view name) const {
 }
 
 bool SafeTensors::contains(std::string_view name) const {
-    return tensors_.find(std::string(name)) != tensors_.end();
+    const std::string key(name);
+    return tensors_.find(key) != tensors_.end() ||
+        aliases_.find(key) != aliases_.end();
 }
 
 }  // namespace da3_native
