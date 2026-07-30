@@ -14,8 +14,13 @@ if(MSVC)
         "MultiThreaded$<$<CONFIG:Debug>:Debug>")
 endif()
 
-add_library(depth_anything_3_native SHARED src/da3.cpp)
-target_include_directories(depth_anything_3_native PUBLIC include)
+add_library(depth_anything_3_native SHARED
+    src/da3.cpp
+    src/safetensors.cpp
+    src/encoder_cpu.cpp
+    src/dpt_cpu.cpp)
+target_include_directories(
+    depth_anything_3_native PUBLIC include PRIVATE src)
 target_compile_definitions(
     depth_anything_3_native PRIVATE DA3_BUILD_DLL)
 set_target_properties(depth_anything_3_native PROPERTIES
@@ -41,6 +46,16 @@ add_executable(da3_encoder_probe
 target_include_directories(da3_encoder_probe PRIVATE include src)
 if(MSVC)
     target_compile_options(da3_encoder_probe PRIVATE /W4 /permissive-)
+endif()
+
+add_executable(da3_full_graph_probe
+    tools/full_graph_probe.cpp)
+target_link_libraries(
+    da3_full_graph_probe PRIVATE depth_anything_3_native)
+target_include_directories(da3_full_graph_probe PRIVATE include)
+if(MSVC)
+    target_compile_options(
+        da3_full_graph_probe PRIVATE /W4 /permissive-)
 endif()
 
 include(CTest)

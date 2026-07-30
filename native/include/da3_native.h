@@ -21,6 +21,8 @@ extern "C" {
 
 #define DA3_ABI_VERSION 1u
 
+typedef struct da3_context da3_context;
+
 typedef enum da3_status {
     DA3_STATUS_OK = 0,
     DA3_STATUS_INVALID_ARGUMENT = 1,
@@ -38,6 +40,22 @@ DA3_API uint32_t DA3_CALL da3_abi_version(void);
 DA3_API const char* DA3_CALL da3_version_string(void);
 DA3_API const char* DA3_CALL da3_status_string(da3_status status);
 DA3_API const char* DA3_CALL da3_last_error(void);
+DA3_API da3_status DA3_CALL da3_create(
+    const char* model_safetensors_path_utf8,
+    da3_context** context);
+DA3_API void DA3_CALL da3_destroy(da3_context* context);
+/*
+ * Executes the lean single-view depth graph used by InferBridge. Input is
+ * normalized contiguous RGB CHW FP32; output is contiguous HW depth.
+ * Width and height must be positive multiples of 14.
+ */
+DA3_API da3_status DA3_CALL da3_infer_tensor_f32(
+    da3_context* context,
+    const float* normalized_rgb_chw,
+    int32_t width,
+    int32_t height,
+    float* depth_hw,
+    uint64_t depth_elements);
 
 #ifdef __cplusplus
 }
