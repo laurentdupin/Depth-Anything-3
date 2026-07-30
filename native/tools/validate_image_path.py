@@ -54,6 +54,13 @@ def main() -> None:
     reference = model.inference(
         [python_image],
         process_res=args.process_resolution).depth[0].astype(np.float32)
+    reference_minimum = float(reference.min())
+    reference_span = float(reference.max()) - reference_minimum
+    reference = (
+        np.zeros_like(reference)
+        if reference_span == 0.0
+        else (reference - reference_minimum) / reference_span
+    )
 
     library = ctypes.CDLL(str(args.dll.resolve()))
     library.da3_create_vulkan.argtypes = [

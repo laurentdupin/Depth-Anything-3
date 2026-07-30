@@ -74,8 +74,9 @@ DA3_API da3_status DA3_CALL da3_inferbridge_image_shape(
 
 /*
  * Reproduces the current InferBridge worker's BGRA/BGR byte ordering,
- * upper-bound resizing, patch rounding, and ImageNet normalization. Output
- * dimensions are returned by da3_inferbridge_image_shape.
+ * upper-bound resizing, patch rounding, ImageNet normalization, and output
+ * min/max normalization. Output dimensions are returned by
+ * da3_inferbridge_image_shape.
  */
 DA3_API da3_status DA3_CALL da3_infer_bgra8_f32(
     da3_context* context,

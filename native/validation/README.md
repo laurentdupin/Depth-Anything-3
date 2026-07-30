@@ -79,7 +79,34 @@ ImageNet normalization. Depth remains at the processed resolution, matching
 the worker's output header.
 
 For a deterministic 83x61 BGRA image at process resolution 56, Python CPU and
-Vulkan on the RX 9070, GTX 1080, and RX 6700 XT all produced 42x56 depth. Mean
-relative error was `0.00950%`, maximum relative error `0.02059%`, and maximum
-absolute error was `0.000192` on all three.
+Vulkan on the RX 9070, GTX 1080, and RX 6700 XT all produced 42x56 depth. The
+image entry point also applies the worker's final per-image min/max
+normalization, so its returned FP32 payload is directly compatible with the
+InferBridge worker contract. Across the three devices, maximum absolute
+deviation was `0.001280`, mean absolute deviation was at most `0.000679`, and
+mean relative deviation was at most `0.1781%`. Relative error close to the
+zero endpoint is ill-conditioned; the normalized-range maximum absolute
+deviation is `0.1280%`.
 `native/tools/validate_image_path.py` reproduces this canary.
+
+## Embedded InferBridge harness
+
+The model DLL itself exports `ibrh_get_api` for InferBridge harness ABI 1.0.
+The implementation accepts one host-memory BGRA8 image and returns one leased
+host-memory normalized FP32 depth image while preserving `source_frame_id` and
+timestamp correlation. Runtime/device selection, canonical safetensors model
+loading, submit/poll/acquire/release lifetimes, and stable error reporting are
+covered by the harness tests. The output lease retains its backing job after
+the caller releases the job handle.
+
+Capability reporting is intentionally conservative: only host input/output is
+advertised, with one synchronous in-flight job. The neural graph still runs
+entirely through the selected Vulkan device, but image upload and depth
+download remain host boundaries. External GPU-resource import/export, async
+execution, and cancellation are not advertised or emulated.
+
+With the pinned canonical DA3-Small checkpoint, the Windows Release build
+passes `da3_c_abi_smoke`, `da3_harness_abi_smoke`, and
+`da3_harness_full_graph`. The full-graph test verifies model loading, a
+non-square BGRA submission, normalized FP32 output, correlation fields, and
+lease lifetime.

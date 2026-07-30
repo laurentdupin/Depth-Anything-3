@@ -73,6 +73,7 @@ endif()
 add_library(depth_anything_3_native SHARED
     src/da3.cpp
     src/image.cpp
+    src/inferbridge_harness.cpp
     src/safetensors.cpp
     src/encoder_cpu.cpp
     src/dpt_cpu.cpp)
@@ -94,7 +95,9 @@ endif()
 target_include_directories(
     depth_anything_3_native PUBLIC include PRIVATE src)
 target_compile_definitions(
-    depth_anything_3_native PRIVATE DA3_BUILD_DLL)
+    depth_anything_3_native PRIVATE
+        DA3_BUILD_DLL
+        INFERBRIDGE_HARNESS_BUILDING_LIBRARY)
 set_target_properties(depth_anything_3_native PROPERTIES
     CXX_VISIBILITY_PRESET hidden
     VISIBILITY_INLINES_HIDDEN YES)
@@ -137,6 +140,18 @@ if(BUILD_TESTING)
         da3_c_abi_smoke PRIVATE depth_anything_3_native)
     target_include_directories(da3_c_abi_smoke PRIVATE include)
     add_test(NAME da3_c_abi_smoke COMMAND da3_c_abi_smoke)
+    add_executable(da3_harness_abi_smoke tests/harness_abi_smoke.c)
+    target_link_libraries(
+        da3_harness_abi_smoke PRIVATE depth_anything_3_native)
+    target_include_directories(da3_harness_abi_smoke PRIVATE include)
+    add_test(NAME da3_harness_abi_smoke COMMAND da3_harness_abi_smoke)
+    add_executable(da3_harness_full_graph tests/harness_full_graph.cpp)
+    target_link_libraries(
+        da3_harness_full_graph PRIVATE depth_anything_3_native)
+    target_include_directories(da3_harness_full_graph PRIVATE include)
+    add_test(NAME da3_harness_full_graph COMMAND da3_harness_full_graph)
+    set_tests_properties(
+        da3_harness_full_graph PROPERTIES SKIP_RETURN_CODE 77)
     if(DA3_WITH_VULKAN)
         add_executable(
             da3_gpu_full_graph_probe tools/gpu_full_graph_probe.cpp)

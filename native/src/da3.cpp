@@ -265,16 +265,29 @@ da3_status DA3_CALL da3_infer_bgra8_f32(
                 result.buffer, depth,
                 std::uint64_t(shape.width) * shape.height *
                     sizeof(float));
+        } else
+#endif
+        {
+            std::vector<float> result =
+                da3_native::depth_head_single_view_cpu(
+                    *context->model,
+                    da3_native::encoder_single_view_cpu(
+                        *context->model, prepared.data(),
+                        shape.width, shape.height));
+            std::copy(result.begin(), result.end(), depth);
+        }
+        const std::size_t count =
+            static_cast<std::size_t>(shape.width) * shape.height;
+        const auto bounds = std::minmax_element(depth, depth + count);
+        const float minimum = *bounds.first;
+        const float span = *bounds.second - minimum;
+        if (!(span > 0.0f)) {
+            std::fill_n(depth, count, 0.0f);
             return;
         }
-#endif
-        std::vector<float> result =
-            da3_native::depth_head_single_view_cpu(
-                *context->model,
-                da3_native::encoder_single_view_cpu(
-                    *context->model, prepared.data(),
-                    shape.width, shape.height));
-        std::copy(result.begin(), result.end(), depth);
+        for (std::size_t index = 0; index < count; ++index) {
+            depth[index] = (depth[index] - minimum) / span;
+        }
     });
 }
 
