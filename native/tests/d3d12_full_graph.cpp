@@ -389,6 +389,7 @@ std::vector<float> resize_align_true(
 }
 
 std::filesystem::path model_path() {
+    if (const char* value = std::getenv("DA3_SNAPSHOT_DIR")) return value;
     if (const char* value = std::getenv("DA3_MODEL")) return value;
     return {};
 }

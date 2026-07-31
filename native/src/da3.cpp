@@ -9,6 +9,7 @@
 #endif
 
 #include <algorithm>
+#include <filesystem>
 #include <memory>
 #include <new>
 #include <stdexcept>
@@ -24,6 +25,25 @@ struct da3_context {
 
 namespace {
 thread_local std::string last_error;
+
+std::string resolve_model_path(const char* supplied_path) {
+    const std::filesystem::path path =
+        std::filesystem::u8path(supplied_path);
+    std::error_code error;
+    if (!std::filesystem::is_directory(path, error)) {
+        if (error) {
+            throw std::runtime_error(
+                "failed to inspect DA3 model path: " + error.message());
+        }
+        return supplied_path;
+    }
+    const std::filesystem::path model = path / "model.safetensors";
+    if (!std::filesystem::is_regular_file(model, error) || error) {
+        throw std::runtime_error(
+            "DA3 snapshot directory does not contain model.safetensors");
+    }
+    return model.u8string();
+}
 
 da3_status fail(da3_status status, const char* message) {
     last_error = message ? message : "";
@@ -90,8 +110,9 @@ da3_status DA3_CALL da3_create(
     }
     return protect([&] {
         auto result = std::make_unique<da3_context>();
+        const std::string resolved = resolve_model_path(model_path);
         result->model =
-            std::make_unique<da3_native::SafeTensors>(model_path);
+            std::make_unique<da3_native::SafeTensors>(resolved);
         *context = result.release();
     });
 }
@@ -115,8 +136,9 @@ da3_status DA3_CALL da3_create_vulkan(
 #else
     return protect([&] {
         auto result = std::make_unique<da3_context>();
+        const std::string resolved = resolve_model_path(model_path);
         result->external_gpu =
-            da3_native::create_external_gpu(model_path, device_index);
+            da3_native::create_external_gpu(resolved, device_index);
         *context = result.release();
     });
 #endif

@@ -22,9 +22,11 @@ bool check(bool condition, const char* message) {
 }  // namespace
 
 int main() {
-    const char* path = std::getenv("DA3_VITS_MODEL");
+    const char* path = std::getenv("DA3_SNAPSHOT_DIR");
+    if (path == nullptr || *path == '\0')
+        path = std::getenv("DA3_VITS_MODEL");
     if (path == nullptr || *path == '\0') {
-        std::cout << "DA3_VITS_MODEL is not set; skipping\n";
+        std::cout << "DA3_SNAPSHOT_DIR/DA3_VITS_MODEL is not set; skipping\n";
         return 77;
     }
     ibrh_api api{};
