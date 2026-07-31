@@ -18,6 +18,7 @@
 #include "layer_norm_spv.h"
 #include "linear_spv.h"
 #include "linear16_spv.h"
+#include "linear_vec8_spv.h"
 #include "linear_half_spv.h"
 #include "linear16_half_spv.h"
 #include "prepare_tokens_spv.h"
@@ -77,6 +78,8 @@ VulkanOperators::VulkanOperators(VulkanContext& context)
           da3_linear_spv, da3_linear_spv_size, 4, 12)),
       linear16_(context.create_pipeline(
           da3_linear16_spv, da3_linear16_spv_size, 4, 12)),
+      linear_vec8_(context.create_pipeline(
+          da3_linear_vec8_spv, da3_linear_vec8_spv_size, 4, 12)),
       linear_half_(context.create_pipeline(
           da3_linear_half_spv, da3_linear_half_spv_size, 4, 12)),
       linear16_half_(context.create_pipeline(
@@ -199,6 +202,7 @@ VulkanOperators::VulkanOperators(VulkanContext& context)
           da3_tokens_to_nchw_spv, da3_tokens_to_nchw_spv_size, 2, 8)) {
     linear_.set_debug_name("linear");
     linear16_.set_debug_name("linear16");
+    linear_vec8_.set_debug_name("linear_vec8");
     linear_half_.set_debug_name("linear_half");
     linear16_half_.set_debug_name("linear16_half");
     gelu_.set_debug_name("gelu");
@@ -268,15 +272,22 @@ void VulkanOperators::linear(
         std::uint32_t input_columns;
         std::uint32_t output_columns;
     } parameters{rows, input_columns, output_columns};
+    VulkanPipeline& pipeline = half_weight
+        ? (block16 ? linear16_half_ : linear_half_)
+        : linear_vec8_;
+    const std::uint32_t groups_x = half_weight
+        ? divide_up(divide_up(output_columns, 4), 8)
+        : divide_up(output_columns, 64);
+    const std::uint32_t groups_y = half_weight
+        ? divide_up(divide_up(rows, 4), 8)
+        : divide_up(rows, 56);
     context_.dispatch(
-        half_weight
-            ? (block16 ? linear16_half_ : linear_half_)
-            : (block16 ? linear16_ : linear_),
+        pipeline,
         {&output, &input, &weight, &bias},
         &parameters,
         sizeof(parameters),
-        divide_up(divide_up(output_columns, 4), 8),
-        divide_up(divide_up(rows, 4), 8));
+        groups_x,
+        groups_y);
     if (gelu) {
         struct GeluParameters {
             std::uint32_t count;

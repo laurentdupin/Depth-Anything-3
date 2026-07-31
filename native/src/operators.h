@@ -153,6 +153,7 @@ private:
     VulkanContext& context_;
     VulkanPipeline linear_;
     VulkanPipeline linear16_;
+    VulkanPipeline linear_vec8_;
     VulkanPipeline linear_half_;
     VulkanPipeline linear16_half_;
     VulkanPipeline gelu_;

@@ -61,7 +61,7 @@ if(DA3_WITH_VULKAN)
             bilinear_align_true_image bmm bmm_score_half
             bmm_value_half conv2d conv2d8 conv2d_half conv2d8_half
             conv_transpose_nonoverlap conv_transpose_nonoverlap_half
-            elementwise gelu layer_norm linear linear16 linear_half
+            elementwise gelu layer_norm linear linear16 linear_vec8 linear_half
             linear16_half prepare_tokens position_bicubic project_tokens
             project_tokens_half relu softmax_lastdim
             softmax_lastdim_half replace_token qk_rope capture_concat
