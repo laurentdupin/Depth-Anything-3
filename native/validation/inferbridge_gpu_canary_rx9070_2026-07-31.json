@@ -8,6 +8,8 @@
   "maximumInFlightJobs": 3,
   "exactLuidSelection": true,
   "commonAbiEntryPointsPassed": true,
+  "snapshotDirectoryLoad": true,
+  "modelInput": "canonical snapshot directory containing config.json and model.safetensors",
   "sourceFrameAndTimestampCorrelation": true,
   "leaseSurvivesJobModelRuntimeRelease": true,
   "threeRetainedLeasesAndStableReuse": true,
@@ -21,7 +23,7 @@
   "cases": [
     {
       "id": "depth-anything-v3-small",
-      "model": "canonical model.safetensors",
+      "model": "canonical snapshot directory resolved internally to model.safetensors",
       "maximumCpuNormalizedRangeDeviation": 0.00180328,
       "passed": true
     }
