@@ -65,8 +65,23 @@ than isolated performance benchmarks.
 The FP32 GPU baseline covers camera-token replacement, Q/K normalization,
 local and global RoPE, local/global capture concatenation, the complete main
 DPT branch, UV embeddings, and exponential metric depth. Mixed precision
-remains disabled until a separate accuracy gate is added. External
-GPU-resource import/export is not advertised by DA3 yet.
+remains disabled until a separate accuracy gate is added.
+
+The additive InferBridge GPU-resource path imports a producer-owned shared
+D3D12 BGRA texture and fence directly into Vulkan, performs preprocessing and
+the complete graph without host tensor staging, and exports a leased shared
+D3D12 R32_FLOAT texture plus completion fence. The executor records operators
+and inter-operator buffer copies as separate command buffers and chains them by
+GPU timeline semaphore values; it performs no CPU wait between operators and
+does not call `vkQueueWaitIdle`.
+
+The RX 9070 public-boundary canary retains three simultaneous output leases,
+rejects a fourth job, verifies stable slot reuse, correlation, cancellation,
+and lease survival after model/runtime shutdown. Across its repeated frames,
+the process-wide tensor upload and download counters both remain unchanged.
+The maximum normalized-range deviation from the scalar CPU result is
+`0.00180328` (`0.180328%`). Full evidence is recorded in
+`native/validation/inferbridge_gpu_canary_rx9070_2026-07-31.json`.
 
 ## InferBridge image contract
 
@@ -99,14 +114,15 @@ loading, submit/poll/acquire/release lifetimes, and stable error reporting are
 covered by the harness tests. The output lease retains its backing job after
 the caller releases the job handle.
 
-Capability reporting is intentionally conservative: only host input/output is
-advertised, with one synchronous in-flight job. The neural graph still runs
-entirely through the selected Vulkan device, but image upload and depth
-download remain host boundaries. External GPU-resource import/export, async
-execution, and cancellation are not advertised or emulated.
+Windows Vulkan builds advertise the common D3D12 GPU-resource capability in
+addition to the host path. Runtime creation requires exact D3D12/Vulkan LUID
+matching and fails if the selected adapter cannot import both the shared input
+texture/fence and shared R32 output texture/fence. GPU submission never falls
+back to host memory. Three reusable output slots are exposed; each lease owns
+only its slot until release.
 
 With the pinned canonical DA3-Small checkpoint, the Windows Release build
-passes `da3_c_abi_smoke`, `da3_harness_abi_smoke`, and
-`da3_harness_full_graph`. The full-graph test verifies model loading, a
-non-square BGRA submission, normalized FP32 output, correlation fields, and
-lease lifetime.
+passes `da3_c_abi_smoke`, `da3_harness_abi_smoke`,
+`da3_harness_full_graph`, and the hardware-gated
+`da3_d3d12_full_graph`. The latter uses the exact common InferBridge API and
+validates the complete shared-texture path on an RX 9070.

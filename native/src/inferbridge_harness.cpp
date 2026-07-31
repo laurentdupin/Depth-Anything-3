@@ -1,11 +1,13 @@
 #include "inferbridge_harness.h"
 
 #include "da3_native.h"
+#include "da3_internal.h"
 
 #include <atomic>
 #include <cstdint>
 #include <cstring>
 #include <limits>
+#include <memory>
 #include <mutex>
 #include <new>
 #include <string>
@@ -14,6 +16,7 @@
 struct ibrh_runtime {
     std::string error;
     int32_t vulkan_device_index = 0;
+    uint64_t adapter_luid = 0u;
 };
 
 struct ibrh_model {
@@ -25,6 +28,7 @@ struct ibrh_model {
 
 struct ibrh_job {
     std::atomic<uint32_t> references{1u};
+    std::shared_ptr<da3_native::ExternalJob> gpu_job;
     uint64_t source_frame_id = 0u;
     uint64_t timestamp_ns = 0u;
     uint32_t width = 0u;
@@ -34,13 +38,14 @@ struct ibrh_job {
 
 struct ibrh_output_lease {
     ibrh_job* job = nullptr;
+    std::shared_ptr<da3_native::ExternalJob> gpu_job;
 };
 
 namespace {
 
 thread_local std::string g_last_error;
 constexpr char kHarnessId[] = "inferbridge.depth-anything-v3.native";
-constexpr char kHarnessVersion[] = "1.0.0";
+constexpr char kHarnessVersion[] = "1.1.0";
 
 ibrh_result fail(
     ibrh_runtime* runtime, ibrh_result result, const std::string& message) {
@@ -96,6 +101,49 @@ bool json_uint(
     return true;
 }
 
+bool parse_luid(const std::string& value, uint64_t& result) {
+    if (value.size() != 16u) return false;
+    auto nibble = [](char character) -> int {
+        if (character >= '0' && character <= '9') return character - '0';
+        if (character >= 'a' && character <= 'f')
+            return character - 'a' + 10;
+        if (character >= 'A' && character <= 'F')
+            return character - 'A' + 10;
+        return -1;
+    };
+    uint8_t bytes[8]{};
+    for (size_t index = 0u; index < 8u; ++index) {
+        const int upper = nibble(value[index * 2u]);
+        const int lower = nibble(value[index * 2u + 1u]);
+        if (upper < 0 || lower < 0) return false;
+        bytes[index] = static_cast<uint8_t>((upper << 4u) | lower);
+    }
+    std::memcpy(&result, bytes, sizeof(result));
+    return true;
+}
+
+bool device_index_for_luid(uint64_t luid, int32_t& device_index) {
+#if defined(DA3_WITH_VULKAN) && defined(_WIN32)
+    for (int32_t index = 0; index < 32; ++index) {
+        try {
+            const auto capabilities = da3_native::probe_external_gpu(
+                static_cast<uint32_t>(index));
+            if (capabilities.available && capabilities.adapter_luid == luid) {
+                device_index = index;
+                return true;
+            }
+        } catch (...) {
+            if (index == 0) return false;
+            break;
+        }
+    }
+#else
+    (void)luid;
+    (void)device_index;
+#endif
+    return false;
+}
+
 bool input_size(
     const std::string& json, uint32_t fallback, uint32_t& value) {
     value = fallback;
@@ -144,6 +192,19 @@ ibrh_result IBRH_CALL query_capabilities(
     capabilities->maximum_inputs = 1u;
     capabilities->maximum_outputs = 1u;
     capabilities->maximum_in_flight_jobs = 1u;
+#if defined(DA3_WITH_VULKAN) && defined(_WIN32)
+    capabilities->flags |=
+        IBRH_CAP_ASYNC_SUBMIT | IBRH_CAP_CANCELLATION |
+        IBRH_CAP_GPU_RESOURCES | IBRH_CAP_EXTERNAL_SYNCHRONIZATION |
+        IBRH_CAP_GPU_RESIDENT_OUTPUT;
+    capabilities->input_domain_mask |=
+        1ull << IBRH_RESOURCE_DOMAIN_D3D12;
+    capabilities->output_domain_mask |=
+        1ull << IBRH_RESOURCE_DOMAIN_D3D12;
+    capabilities->synchronization_mask =
+        1ull << IBRH_SYNC_D3D12_FENCE;
+    capabilities->maximum_in_flight_jobs = 3u;
+#endif
     capabilities->harness_id = {kHarnessId, sizeof(kHarnessId) - 1u};
     capabilities->harness_version = {
         kHarnessVersion, sizeof(kHarnessVersion) - 1u};
@@ -173,12 +234,16 @@ ibrh_result IBRH_CALL runtime_create(
         runtime->vulkan_device_index = static_cast<int32_t>(index);
     }
     std::string luid_text;
-    if (!json_uint(device, "index", index) &&
-        json_string(device, "luid", luid_text) && !luid_text.empty()) {
-        delete runtime;
-        return fail(
-            nullptr, IBRH_ERROR_UNSUPPORTED_CAPABILITY,
-            "DA3 requires a Vulkan device index when a LUID is requested");
+    if (json_string(device, "luid", luid_text) && !luid_text.empty()) {
+        uint64_t luid = 0u;
+        if (!parse_luid(luid_text, luid) ||
+            !device_index_for_luid(luid, runtime->vulkan_device_index)) {
+            delete runtime;
+            return fail(
+                nullptr, IBRH_ERROR_UNSUPPORTED_CAPABILITY,
+                "DA3 could not match the requested GPU LUID");
+        }
+        runtime->adapter_luid = luid;
     }
     *output = runtime;
     return IBRH_OK;
@@ -223,6 +288,18 @@ ibrh_result IBRH_CALL model_load(
         delete model;
         return fail(runtime, status_result(status), message);
     }
+    if (runtime->adapter_luid != 0u) {
+        const auto capabilities =
+            da3_native::context_external_capabilities(model->context);
+        if (!capabilities.available ||
+            capabilities.adapter_luid != runtime->adapter_luid) {
+            da3_destroy(model->context);
+            delete model;
+            return fail(
+                runtime, IBRH_ERROR_UNSUPPORTED_CAPABILITY,
+                "DA3 loaded on a GPU other than the requested device");
+        }
+    }
     *output = model;
     return IBRH_OK;
 }
@@ -246,13 +323,81 @@ ibrh_result IBRH_CALL submit(
         return fail(
             model->runtime, IBRH_ERROR_INVALID_ARGUMENT,
             "DA3 requires exactly one BGRA8 input");
-    if (request->synchronization_count != 0u)
-        return fail(
-            model->runtime, IBRH_ERROR_UNSUPPORTED_CAPABILITY,
-            "DA3 host harness does not accept external synchronization");
     const ibrh_resource& input = request->inputs[0];
     if (input.struct_size < sizeof(input))
         return IBRH_ERROR_STRUCT_TOO_SMALL;
+    uint32_t size = model->input_size;
+    if (!input_size(copy_string(request->parameters_json), size, size))
+        return fail(
+            model->runtime, IBRH_ERROR_INVALID_ARGUMENT,
+            "DA3 Size must be an integer from 1 to 4096");
+    if (input.domain == IBRH_RESOURCE_DOMAIN_D3D12 &&
+        input.kind == IBRH_RESOURCE_KIND_IMAGE_2D &&
+        input.native_handle_type == IBRH_NATIVE_HANDLE_WIN32_SHARED) {
+#if !defined(DA3_WITH_VULKAN) || !defined(_WIN32)
+        return fail(model->runtime, IBRH_ERROR_UNSUPPORTED_CAPABILITY,
+                    "DA3 D3D12 texture input is unavailable in this build");
+#else
+        if (input.pixel_format != IBRH_PIXEL_BGRA8 ||
+            input.native_handle == 0u || input.width == 0u ||
+            input.height == 0u)
+            return fail(model->runtime, IBRH_ERROR_INVALID_ARGUMENT,
+                        "DA3 D3D12 texture descriptor is invalid");
+        if (request->synchronization_count != 0u &&
+            request->synchronizations == nullptr)
+            return fail(model->runtime, IBRH_ERROR_INVALID_ARGUMENT,
+                        "DA3 synchronization array is missing");
+        const ibrh_synchronization* wait = nullptr;
+        for (uint32_t index = 0u;
+             index < request->synchronization_count; ++index) {
+            const auto& candidate = request->synchronizations[index];
+            if (candidate.struct_size < sizeof(candidate))
+                return IBRH_ERROR_STRUCT_TOO_SMALL;
+            if (candidate.kind == IBRH_SYNC_D3D12_FENCE &&
+                candidate.operation == IBRH_SYNC_WAIT &&
+                candidate.native_handle_type ==
+                    IBRH_NATIVE_HANDLE_WIN32_SHARED) {
+                if (wait != nullptr)
+                    return fail(model->runtime, IBRH_ERROR_INVALID_ARGUMENT,
+                                "DA3 received multiple D3D12 wait fences");
+                wait = &candidate;
+            }
+        }
+        if (wait == nullptr || wait->native_handle == 0u)
+            return fail(model->runtime, IBRH_ERROR_INVALID_ARGUMENT,
+                        "DA3 D3D12 texture input requires a wait fence");
+        auto* job = new (std::nothrow) ibrh_job();
+        if (job == nullptr) return IBRH_ERROR_INTERNAL;
+        try {
+            std::lock_guard<std::mutex> lock(model->submit_mutex);
+            job->gpu_job = da3_native::submit_external_texture(
+                model->context,
+                {input.native_handle, input.width, input.height, size,
+                 wait->native_handle, wait->value,
+                 request->source_frame_id, request->timestamp_ns});
+        } catch (const da3_native::GpuSlotsExhausted& error) {
+            delete job;
+            return fail(model->runtime, IBRH_ERROR_INVALID_STATE, error.what());
+        } catch (const std::invalid_argument& error) {
+            delete job;
+            return fail(model->runtime, IBRH_ERROR_INVALID_ARGUMENT, error.what());
+        } catch (const std::exception& error) {
+            delete job;
+            return fail(model->runtime, IBRH_ERROR_UNSUPPORTED_CAPABILITY,
+                        error.what());
+        }
+        job->source_frame_id = request->source_frame_id;
+        job->timestamp_ns = request->timestamp_ns;
+        job->width = input.width;
+        job->height = input.height;
+        *output = job;
+        return IBRH_OK;
+#endif
+    }
+    if (request->synchronization_count != 0u)
+        return fail(
+            model->runtime, IBRH_ERROR_UNSUPPORTED_CAPABILITY,
+            "DA3 host input does not accept external synchronization");
     if (input.domain != IBRH_RESOURCE_DOMAIN_HOST ||
         input.kind != IBRH_RESOURCE_KIND_IMAGE_2D ||
         input.native_handle_type != IBRH_NATIVE_HANDLE_HOST_POINTER ||
@@ -267,11 +412,6 @@ ibrh_result IBRH_CALL submit(
             model->runtime, IBRH_ERROR_UNSUPPORTED_CAPABILITY,
             "DA3 harness requires a valid host BGRA8 image");
     }
-    uint32_t size = model->input_size;
-    if (!input_size(copy_string(request->parameters_json), size, size))
-        return fail(
-            model->runtime, IBRH_ERROR_INVALID_ARGUMENT,
-            "DA3 Size must be an integer from 1 to 4096");
     int32_t output_width = 0;
     int32_t output_height = 0;
     da3_status status = da3_inferbridge_image_shape(
@@ -325,15 +465,31 @@ ibrh_result IBRH_CALL job_poll(
     if (status_size < sizeof(*status)) return IBRH_ERROR_STRUCT_TOO_SMALL;
     *status = {};
     status->struct_size = sizeof(*status);
-    status->state = IBRH_JOB_COMPLETE;
+    if (job->gpu_job) {
+        switch (job->gpu_job->state()) {
+            case da3_native::ExternalJobState::running:
+                status->state = IBRH_JOB_RUNNING;
+                break;
+            case da3_native::ExternalJobState::complete:
+                status->state = IBRH_JOB_COMPLETE;
+                break;
+            case da3_native::ExternalJobState::cancelled:
+                status->state = IBRH_JOB_CANCELLED;
+                break;
+        }
+    } else {
+        status->state = IBRH_JOB_COMPLETE;
+    }
     status->output_count = 1u;
     status->source_frame_id = job->source_frame_id;
     return IBRH_OK;
 }
 
 ibrh_result IBRH_CALL job_cancel(ibrh_job* job) {
-    return job == nullptr ?
-        IBRH_ERROR_INVALID_ARGUMENT : IBRH_ERROR_INVALID_STATE;
+    if (job == nullptr) return IBRH_ERROR_INVALID_ARGUMENT;
+    if (!job->gpu_job) return IBRH_ERROR_INVALID_STATE;
+    job->gpu_job->cancel();
+    return IBRH_OK;
 }
 
 void IBRH_CALL job_release(ibrh_job* job) {
@@ -351,6 +507,48 @@ ibrh_result IBRH_CALL output_acquire(
     if (output_index != 0u) return IBRH_ERROR_NOT_FOUND;
     auto* lease = new (std::nothrow) ibrh_output_lease();
     if (lease == nullptr) return IBRH_ERROR_INTERNAL;
+    if (job->gpu_job) {
+        da3_native::ExternalTextureOutput native{};
+        try {
+            native = job->gpu_job->output();
+        } catch (...) {
+            delete lease;
+            return IBRH_ERROR_CANCELLED;
+        }
+        lease->gpu_job = job->gpu_job;
+        *descriptor = {};
+        descriptor->struct_size = sizeof(*descriptor);
+        descriptor->api_version = IBRH_CURRENT_API_VERSION;
+        descriptor->output_index = output_index;
+        descriptor->payload_type = IBRH_PIXEL_DEPTH_FLOAT32;
+        descriptor->source_frame_id = native.source_frame_id;
+        descriptor->timestamp_ns = native.timestamp_ns;
+        descriptor->resource.struct_size = sizeof(descriptor->resource);
+        descriptor->resource.api_version = IBRH_CURRENT_API_VERSION;
+        descriptor->resource.domain = IBRH_RESOURCE_DOMAIN_D3D12;
+        descriptor->resource.kind = IBRH_RESOURCE_KIND_IMAGE_2D;
+        descriptor->resource.access = IBRH_RESOURCE_ACCESS_READ;
+        descriptor->resource.pixel_format = IBRH_PIXEL_DEPTH_FLOAT32;
+        descriptor->resource.width = native.width;
+        descriptor->resource.height = native.height;
+        descriptor->resource.depth = 1u;
+        descriptor->resource.row_stride_bytes = native.width * sizeof(float);
+        descriptor->resource.byte_size =
+            static_cast<uint64_t>(native.width) * native.height * sizeof(float);
+        descriptor->resource.native_handle_type =
+            IBRH_NATIVE_HANDLE_WIN32_SHARED;
+        descriptor->resource.native_handle = native.shared_texture_handle;
+        descriptor->ready.struct_size = sizeof(descriptor->ready);
+        descriptor->ready.api_version = IBRH_CURRENT_API_VERSION;
+        descriptor->ready.kind = IBRH_SYNC_D3D12_FENCE;
+        descriptor->ready.operation = IBRH_SYNC_WAIT;
+        descriptor->ready.native_handle_type =
+            IBRH_NATIVE_HANDLE_WIN32_SHARED;
+        descriptor->ready.native_handle = native.ready_fence_handle;
+        descriptor->ready.value = native.ready_fence_value;
+        *output = lease;
+        return IBRH_OK;
+    }
     retain_job(job);
     lease->job = job;
     *descriptor = {};
@@ -381,7 +579,10 @@ ibrh_result IBRH_CALL output_acquire(
 
 void IBRH_CALL output_release(ibrh_output_lease* lease) {
     if (lease == nullptr) return;
-    release_job(lease->job);
+    if (lease->gpu_job)
+        lease->gpu_job.reset();
+    else
+        release_job(lease->job);
     delete lease;
 }
 

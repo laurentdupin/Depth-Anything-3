@@ -110,9 +110,7 @@ GpuFeatureMap depth_head_single_view_gpu(
         encoded.patch_width * encoded.patch_height;
     const std::uint32_t image_width = encoded.patch_width * 14;
     const std::uint32_t image_height = encoded.patch_height * 14;
-    VulkanBuffer zero_bias = context.create_device_buffer(sizeof(float));
-    const float zero = 0.0f;
-    context.upload(zero_bias, &zero, sizeof(zero));
+    const VulkanBuffer& zero_bias = model.zero_bias();
     const std::uint32_t project_channels[4] = {48, 96, 192, 384};
     GpuFeatureMap layers[4];
     for (std::uint32_t index = 0; index < 4; ++index) {

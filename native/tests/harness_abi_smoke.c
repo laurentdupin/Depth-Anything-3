@@ -23,17 +23,36 @@ int main(void) {
     CHECK(
         api.query_capabilities(sizeof(capabilities), &capabilities) ==
         IBRH_OK);
-    CHECK(capabilities.flags == IBRH_CAP_HOST_MEMORY);
+#if defined(_WIN32)
+    CHECK(capabilities.flags ==
+        (IBRH_CAP_HOST_MEMORY | IBRH_CAP_ASYNC_SUBMIT |
+         IBRH_CAP_CANCELLATION | IBRH_CAP_GPU_RESOURCES |
+         IBRH_CAP_EXTERNAL_SYNCHRONIZATION |
+         IBRH_CAP_GPU_RESIDENT_OUTPUT));
     CHECK(
         capabilities.input_domain_mask ==
-        (1ull << IBRH_RESOURCE_DOMAIN_HOST));
+        ((1ull << IBRH_RESOURCE_DOMAIN_HOST) |
+         (1ull << IBRH_RESOURCE_DOMAIN_D3D12)));
     CHECK(
         capabilities.output_domain_mask ==
+        ((1ull << IBRH_RESOURCE_DOMAIN_HOST) |
+         (1ull << IBRH_RESOURCE_DOMAIN_D3D12)));
+    CHECK(capabilities.synchronization_mask ==
+        (1ull << IBRH_SYNC_D3D12_FENCE));
+    CHECK(capabilities.maximum_inputs == 1u);
+    CHECK(capabilities.maximum_outputs == 1u);
+    CHECK(capabilities.maximum_in_flight_jobs == 3u);
+#else
+    CHECK(capabilities.flags == IBRH_CAP_HOST_MEMORY);
+    CHECK(capabilities.input_domain_mask ==
+        (1ull << IBRH_RESOURCE_DOMAIN_HOST));
+    CHECK(capabilities.output_domain_mask ==
         (1ull << IBRH_RESOURCE_DOMAIN_HOST));
     CHECK(capabilities.synchronization_mask == 0u);
     CHECK(capabilities.maximum_inputs == 1u);
     CHECK(capabilities.maximum_outputs == 1u);
     CHECK(capabilities.maximum_in_flight_jobs == 1u);
+#endif
     CHECK(
         capabilities.harness_id.size ==
         strlen("inferbridge.depth-anything-v3.native"));

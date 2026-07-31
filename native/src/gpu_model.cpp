@@ -82,6 +82,9 @@ std::uint16_t float_to_half(float input) {
 
 GpuModel::GpuModel(const SafeTensors& model, VulkanContext& context)
     : context_(context) {
+    zero_bias_ = context_.create_device_buffer(sizeof(float));
+    const float zero = 0.0f;
+    context_.upload(zero_bias_, &zero, sizeof(zero));
     tensors_.reserve(model.tensor_count());
     for (std::string_view name : model.tensor_names()) {
         const TensorView& source = model.tensor(name);

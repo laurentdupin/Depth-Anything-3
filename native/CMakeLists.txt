@@ -65,7 +65,8 @@ if(DA3_WITH_VULKAN)
             linear16_half prepare_tokens position_bicubic project_tokens
             project_tokens_half relu softmax_lastdim
             softmax_lastdim_half replace_token qk_rope capture_concat
-            add_uv exponential tokens_to_nchw)
+            add_uv exponential tokens_to_nchw preprocess_texture
+            preprocess_finish)
         da3_compile_shader(${SHADER})
     endforeach()
 endif()
@@ -82,6 +83,8 @@ if(DA3_WITH_VULKAN)
         src/vulkan.cpp
         src/operators.cpp
         src/gpu_model.cpp
+        src/gpu_preprocess.cpp
+        src/external_gpu.cpp
         src/encoder_gpu.cpp
         src/dpt_gpu.cpp
         ${DA3_SHADER_HEADERS})
@@ -89,6 +92,10 @@ if(DA3_WITH_VULKAN)
         depth_anything_3_native PRIVATE "${DA3_GENERATED_DIR}")
     target_link_libraries(
         depth_anything_3_native PRIVATE Vulkan::Vulkan)
+    if(WIN32)
+        target_link_libraries(
+            depth_anything_3_native PRIVATE d3d12 dxgi)
+    endif()
     target_compile_definitions(
         depth_anything_3_native PRIVATE DA3_WITH_VULKAN=1)
 endif()
@@ -153,6 +160,20 @@ if(BUILD_TESTING)
     set_tests_properties(
         da3_harness_full_graph PROPERTIES SKIP_RETURN_CODE 77)
     if(DA3_WITH_VULKAN)
+        if(WIN32)
+            add_executable(
+                da3_d3d12_full_graph tests/d3d12_full_graph.cpp)
+            target_link_libraries(
+                da3_d3d12_full_graph PRIVATE
+                    depth_anything_3_native d3d12 dxgi)
+            target_include_directories(
+                da3_d3d12_full_graph PRIVATE include)
+            add_test(
+                NAME da3_d3d12_full_graph
+                COMMAND da3_d3d12_full_graph)
+            set_tests_properties(
+                da3_d3d12_full_graph PROPERTIES SKIP_RETURN_CODE 77)
+        endif()
         add_executable(
             da3_gpu_full_graph_probe tools/gpu_full_graph_probe.cpp)
         target_link_libraries(

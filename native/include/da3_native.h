@@ -23,6 +23,13 @@ extern "C" {
 
 typedef struct da3_context da3_context;
 
+typedef struct da3_transfer_counters {
+    uint32_t struct_size;
+    uint32_t abi_version;
+    uint64_t tensor_upload_bytes;
+    uint64_t tensor_download_bytes;
+} da3_transfer_counters;
+
 typedef enum da3_status {
     DA3_STATUS_OK = 0,
     DA3_STATUS_INVALID_ARGUMENT = 1,
@@ -87,6 +94,10 @@ DA3_API da3_status DA3_CALL da3_infer_bgra8_f32(
     int32_t process_resolution,
     float* depth_hw,
     uint64_t depth_elements);
+
+/* Process-wide diagnostics used to prove zero per-frame host staging. */
+DA3_API da3_status DA3_CALL da3_get_transfer_counters(
+    da3_transfer_counters* counters);
 
 #ifdef __cplusplus
 }

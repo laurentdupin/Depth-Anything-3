@@ -5,11 +5,7 @@
 #include "image.h"
 #include "safetensors.h"
 #if defined(DA3_WITH_VULKAN)
-#include "dpt_gpu.h"
-#include "encoder_gpu.h"
-#include "gpu_model.h"
-#include "operators.h"
-#include "vulkan.h"
+#include "da3_internal.h"
 #endif
 
 #include <algorithm>
@@ -22,9 +18,7 @@
 struct da3_context {
     std::unique_ptr<da3_native::SafeTensors> model;
 #if defined(DA3_WITH_VULKAN)
-    std::unique_ptr<da3_native::VulkanContext> vulkan;
-    std::unique_ptr<da3_native::GpuModel> gpu_model;
-    std::unique_ptr<da3_native::VulkanOperators> operators;
+    std::shared_ptr<da3_native::ExternalGpu> external_gpu;
 #endif
 };
 
@@ -121,14 +115,8 @@ da3_status DA3_CALL da3_create_vulkan(
 #else
     return protect([&] {
         auto result = std::make_unique<da3_context>();
-        result->model =
-            std::make_unique<da3_native::SafeTensors>(model_path);
-        result->vulkan =
-            std::make_unique<da3_native::VulkanContext>(device_index);
-        result->gpu_model = std::make_unique<da3_native::GpuModel>(
-            *result->model, *result->vulkan);
-        result->operators =
-            std::make_unique<da3_native::VulkanOperators>(*result->vulkan);
+        result->external_gpu =
+            da3_native::create_external_gpu(model_path, device_index);
         *context = result.release();
     });
 #endif
@@ -145,7 +133,11 @@ da3_status DA3_CALL da3_infer_tensor_f32(
     int32_t height,
     float* depth,
     uint64_t depth_elements) {
-    if (!context || !context->model || !input || !depth ||
+    if (!context || (!context->model
+#if defined(DA3_WITH_VULKAN)
+            && !context->external_gpu
+#endif
+        ) || !input || !depth ||
         width <= 0 || height <= 0 ||
         width % 14 != 0 || height % 14 != 0 ||
         depth_elements < std::uint64_t(width) * height) {
@@ -155,24 +147,10 @@ da3_status DA3_CALL da3_infer_tensor_f32(
     }
     return protect([&] {
 #if defined(DA3_WITH_VULKAN)
-        if (context->vulkan) {
-            const std::size_t input_bytes =
-                std::size_t(width) * height * 3 * sizeof(float);
-            da3_native::VulkanBuffer image =
-                context->vulkan->create_device_buffer(input_bytes);
-            context->vulkan->upload(image, input, input_bytes);
-            da3_native::GpuFeatureMap result =
-                da3_native::depth_head_single_view_gpu(
-                    *context->vulkan, *context->gpu_model,
-                    *context->operators,
-                    da3_native::encoder_single_view_gpu(
-                        *context->vulkan, *context->gpu_model,
-                        *context->operators, image,
-                        static_cast<std::uint32_t>(width),
-                        static_cast<std::uint32_t>(height)));
-            context->vulkan->download(
-                result.buffer, depth,
-                std::size_t(width) * height * sizeof(float));
+        if (context->external_gpu) {
+            context->external_gpu->infer(
+                input, static_cast<std::uint32_t>(width),
+                static_cast<std::uint32_t>(height), depth);
             return;
         }
 #endif
@@ -219,7 +197,11 @@ da3_status DA3_CALL da3_infer_bgra8_f32(
     int32_t process_resolution,
     float* depth,
     uint64_t depth_elements) {
-    if (!context || !context->model || !bgra || !depth ||
+    if (!context || (!context->model
+#if defined(DA3_WITH_VULKAN)
+            && !context->external_gpu
+#endif
+        ) || !bgra || !depth ||
         image_width <= 0 || image_height <= 0 ||
         process_resolution <= 0 ||
         bgra_stride_bytes <
@@ -246,25 +228,9 @@ da3_status DA3_CALL da3_infer_bgra8_f32(
                 static_cast<std::uint32_t>(image_height),
                 static_cast<std::uint32_t>(process_resolution));
 #if defined(DA3_WITH_VULKAN)
-        if (context->vulkan) {
-            da3_native::VulkanBuffer image =
-                context->vulkan->create_device_buffer(
-                    prepared.size() * sizeof(float));
-            context->vulkan->upload(
-                image, prepared.data(),
-                prepared.size() * sizeof(float));
-            da3_native::GpuFeatureMap result =
-                da3_native::depth_head_single_view_gpu(
-                    *context->vulkan, *context->gpu_model,
-                    *context->operators,
-                    da3_native::encoder_single_view_gpu(
-                        *context->vulkan, *context->gpu_model,
-                        *context->operators, image,
-                        shape.width, shape.height));
-            context->vulkan->download(
-                result.buffer, depth,
-                std::uint64_t(shape.width) * shape.height *
-                    sizeof(float));
+        if (context->external_gpu) {
+            context->external_gpu->infer(
+                prepared.data(), shape.width, shape.height, depth);
         } else
 #endif
         {
@@ -291,4 +257,50 @@ da3_status DA3_CALL da3_infer_bgra8_f32(
     });
 }
 
+da3_status DA3_CALL da3_get_transfer_counters(
+    da3_transfer_counters* counters) {
+    if (counters == nullptr || counters->struct_size < sizeof(*counters))
+        return fail(DA3_STATUS_INVALID_ARGUMENT,
+                    "invalid DA3 transfer counter descriptor");
+    *counters = {};
+    counters->struct_size = sizeof(*counters);
+    counters->abi_version = DA3_ABI_VERSION;
+#if defined(DA3_WITH_VULKAN)
+    da3_native::global_transfer_counters(
+        counters->tensor_upload_bytes,
+        counters->tensor_download_bytes);
+#endif
+    return DA3_STATUS_OK;
 }
+
+}  // extern "C"
+
+#if defined(DA3_WITH_VULKAN)
+namespace da3_native {
+
+ExternalGpuCapabilities context_external_capabilities(
+    const da3_context* context) {
+    return context != nullptr && context->external_gpu
+        ? context->external_gpu->capabilities()
+        : ExternalGpuCapabilities{};
+}
+
+std::shared_ptr<ExternalJob> submit_external_texture(
+    da3_context* context,
+    const ExternalTextureRequest& request) {
+    if (context == nullptr || !context->external_gpu)
+        throw std::runtime_error("DA3 context has no Vulkan executor");
+    return context->external_gpu->submit_texture(request);
+}
+
+void context_transfer_counters(
+    const da3_context* context,
+    std::uint64_t& upload_bytes,
+    std::uint64_t& download_bytes) {
+    if (context == nullptr || !context->external_gpu)
+        throw std::runtime_error("DA3 context has no Vulkan executor");
+    context->external_gpu->transfer_counters(upload_bytes, download_bytes);
+}
+
+}  // namespace da3_native
+#endif
