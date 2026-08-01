@@ -5,6 +5,7 @@
 #include "encoder_gpu.h"
 #include "gpu_model.h"
 #include "gpu_preprocess.h"
+#include "gpu_output.h"
 #include "image.h"
 #include "operators.h"
 #include "safetensors.h"
@@ -105,7 +106,7 @@ public:
     ExternalGpuImpl(const std::string& model_path, std::uint32_t device_index)
         : model_(model_path), context_(device_index),
           gpu_model_(model_, context_), operators_(context_),
-          preprocessor_(context_)
+          preprocessor_(context_), output_(context_)
 #if defined(_WIN32)
           , d3d12_device_(matching_d3d12_device(context_.adapter_luid()))
 #endif
@@ -218,7 +219,7 @@ public:
                         encoder_single_view_gpu(
                             context_, gpu_model_, operators_, image,
                             shape.width, shape.height));
-                    operators_.bilinear_align_true_image(
+                    output_.resize_and_normalize(
                         output, depth.buffer, depth.width, depth.height,
                         request.width, request.height);
                     context_.release_external_image(
@@ -247,6 +248,7 @@ private:
     GpuModel gpu_model_;
     VulkanOperators operators_;
     GpuPreprocessor preprocessor_;
+    GpuOutput output_;
 #if defined(_WIN32)
     ComPtr<ID3D12Device> d3d12_device_;
     std::mutex record_mutex_;

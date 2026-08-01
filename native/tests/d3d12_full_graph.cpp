@@ -511,7 +511,11 @@ int main() try {
         throw std::runtime_error("DA3 output slot handle was not reused");
     wait_fence(selected.device.Get(), reused.output.ready);
     std::vector<float> gpu = read_output(selected.device.Get(), queue.Get(), reused.output);
-    normalize(gpu);
+    const auto gpu_bounds = std::minmax_element(gpu.begin(), gpu.end());
+    if (std::abs(*gpu_bounds.first) >= 0.001f ||
+        std::abs(*gpu_bounds.second - 1.0f) >= 0.001f)
+        throw std::runtime_error(
+            "DA3 shared GPU output is not normalized to [0,1]");
     int32_t reference_width = 0;
     int32_t reference_height = 0;
     check(da3_inferbridge_image_shape(
@@ -572,7 +576,12 @@ int main() try {
     api.runtime_destroy(runtime);
     std::vector<float> final_depth = read_output(
         selected.device.Get(), queue.Get(), final_job.output);
-    normalize(final_depth);
+    const auto final_bounds = std::minmax_element(
+        final_depth.begin(), final_depth.end());
+    if (std::abs(*final_bounds.first) >= 0.001f ||
+        std::abs(*final_bounds.second - 1.0f) >= 0.001f)
+        throw std::runtime_error(
+            "DA3 shutdown-surviving output is not normalized to [0,1]");
     api.output_release(final_job.lease);
     std::cout << "DA3 common D3D12/Vulkan full graph passed; zero transfers; "
                  "three leases; reuse; cancellation; shutdown lease\n";

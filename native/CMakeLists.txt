@@ -66,7 +66,8 @@ if(DA3_WITH_VULKAN)
             project_tokens_half relu softmax_lastdim
             softmax_lastdim_half replace_token qk_rope capture_concat
             add_uv exponential tokens_to_nchw preprocess_texture
-            preprocess_finish)
+            preprocess_finish resize_depth reduce_minmax
+            normalize_depth_image)
         da3_compile_shader(${SHADER})
     endforeach()
 endif()
@@ -84,6 +85,7 @@ if(DA3_WITH_VULKAN)
         src/operators.cpp
         src/gpu_model.cpp
         src/gpu_preprocess.cpp
+        src/gpu_output.cpp
         src/external_gpu.cpp
         src/encoder_gpu.cpp
         src/dpt_gpu.cpp
