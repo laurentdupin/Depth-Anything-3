@@ -352,7 +352,7 @@ void normalize(std::vector<float>& values) {
         throw std::runtime_error("DA3 output is not finite and varying");
     const float low = *bounds.first;
     const float span = *bounds.second - low;
-    for (float& value : values) value = (value - low) / span;
+    for (float& value : values) value = 1.0f - ((value - low) / span);
 }
 
 std::vector<float> resize_align_true(

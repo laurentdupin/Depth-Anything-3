@@ -273,8 +273,12 @@ da3_status DA3_CALL da3_infer_bgra8_f32(
             std::fill_n(depth, count, 0.0f);
             return;
         }
+        // Deep Desktop's relative-depth contract is inverse depth: nearby
+        // pixels are one and distant pixels are zero. DA3 predicts direct
+        // depth, unlike the disparity-style models, so convert its normalized
+        // result at the harness boundary before InferBridge publishes it.
         for (std::size_t index = 0; index < count; ++index) {
-            depth[index] = (depth[index] - minimum) / span;
+            depth[index] = 1.0f - ((depth[index] - minimum) / span);
         }
     });
 }
