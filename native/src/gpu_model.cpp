@@ -21,9 +21,19 @@ bool use_half_weight(std::string_view name) {
         return false;
     }
     if (name.rfind("model.head.", 0) == 0) {
-        return true;
+        // The DPT head's convolution operators accept packed FP16 weights,
+        // but its LayerNorm still consumes model.head.norm.weight as FP32.
+        return name != "model.head.norm.weight";
     }
     if (name.rfind("model.backbone.pretrained.blocks.", 0) != 0) {
+        return false;
+    }
+    // Q/K normalization parameters are consumed directly by qk_rope as
+    // scalar FP32 arrays.  Packing these tiny tensors does not accelerate the
+    // operation and retaining only the packed copy makes the second inference
+    // read a discarded FP32 buffer.
+    if (name.find(".attn.q_norm.") != std::string_view::npos ||
+        name.find(".attn.k_norm.") != std::string_view::npos) {
         return false;
     }
     return name.find(".attn.") != std::string_view::npos ||
@@ -183,6 +193,10 @@ void GpuModel::retain_transformer_precision(bool half_weight) {
              name.find(".mlp.") == std::string_view::npos)) {
             continue;
         }
+        if (name.find(".attn.q_norm.") != std::string_view::npos ||
+            name.find(".attn.k_norm.") != std::string_view::npos) {
+            continue;
+        }
         GpuTensor& tensor = entry.second;
         if (uses_int8_weights_) {
             context_.discard(tensor.buffer);
@@ -202,6 +216,9 @@ void GpuModel::retain_dpt_precision(bool half_weight) {
         if (name.rfind("model.head.", 0) != 0 ||
             name.size() < 7 ||
             name.substr(name.size() - 7) != ".weight") {
+            continue;
+        }
+        if (name == "model.head.norm.weight") {
             continue;
         }
         GpuTensor& tensor = entry.second;
