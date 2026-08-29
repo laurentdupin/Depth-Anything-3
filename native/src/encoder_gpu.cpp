@@ -1,4 +1,5 @@
 #include "encoder_gpu.h"
+#include "inferbridge/native_harness_precision.h"
 
 #include <stdexcept>
 #include <string>
@@ -10,8 +11,32 @@ constexpr std::uint32_t kEmbedding = 384;
 constexpr std::uint32_t kHeads = 6;
 constexpr const char* kPrefix = "model.backbone.pretrained.";
 
-const VulkanBuffer& weight(const GpuModel& model, const std::string& name) {
-    return model.tensor(name).buffer;
+const VulkanBuffer& weight(
+    const GpuModel& model, const std::string& name, bool half = false) {
+    const GpuTensor& tensor = model.tensor(name);
+    return half ? tensor.half_buffer : tensor.buffer;
+}
+
+void transformer_linear(
+    VulkanOperators& operators, const GpuModel& model,
+    VulkanBuffer& output, const VulkanBuffer& input,
+    const std::string& weight_name, const std::string& bias_name,
+    std::uint32_t rows, std::uint32_t input_columns,
+    std::uint32_t output_columns, bool gelu = false) {
+    const GpuTensor& tensor = model.tensor(weight_name);
+    if (model.uses_int8_weights()) {
+        operators.linear_int8(
+            output, input, tensor.int8_buffer, tensor.int8_scales,
+            model.tensor(bias_name).buffer,
+            rows, input_columns, output_columns, gelu);
+        return;
+    }
+    operators.linear(
+        output, input,
+        model.uses_half_weights() ? tensor.half_buffer : tensor.buffer,
+        model.tensor(bias_name).buffer,
+        rows, input_columns, output_columns, gelu, false,
+        model.uses_half_weights());
 }
 
 std::string block_name(std::uint32_t block, const char* suffix) {
@@ -25,6 +50,7 @@ GpuEncoderOutput encoder_single_view_gpu(
     if (width == 0 || height == 0 || width % 14 != 0 || height % 14 != 0) {
         throw std::invalid_argument("invalid DA3 GPU encoder input");
     }
+    const bool half_weight = model.uses_half_weights();
     const std::uint32_t patch_width = width / 14;
     const std::uint32_t patch_height = height / 14;
     const std::uint32_t patches = patch_width * patch_height;
@@ -72,11 +98,11 @@ GpuEncoderOutput encoder_single_view_gpu(
                 weight(model, block_name(block, ".norm1.weight")),
                 weight(model, block_name(block, ".norm1.bias")),
                 tokens, kEmbedding, 1.0e-6f);
-            operators.linear(
-                qkv, normalized,
-                weight(model, block_name(block, ".attn.qkv.weight")),
-                weight(model, block_name(block, ".attn.qkv.bias")),
-                tokens, kEmbedding, kEmbedding * 3, false);
+            transformer_linear(
+                operators, model, qkv, normalized,
+                block_name(block, ".attn.qkv.weight"),
+                block_name(block, ".attn.qkv.bias"),
+                tokens, kEmbedding, kEmbedding * 3);
             if (block >= 4) {
                 operators.qk_norm_rope(
                     qkv,
@@ -89,11 +115,11 @@ GpuEncoderOutput encoder_single_view_gpu(
             }
             operators.attention_head64(
                 attended, qkv, tokens, kHeads, &scores);
-            operators.linear(
-                projected, attended,
-                weight(model, block_name(block, ".attn.proj.weight")),
-                weight(model, block_name(block, ".attn.proj.bias")),
-                tokens, kEmbedding, kEmbedding, false);
+            transformer_linear(
+                operators, model, projected, attended,
+                block_name(block, ".attn.proj.weight"),
+                block_name(block, ".attn.proj.bias"),
+                tokens, kEmbedding, kEmbedding);
             operators.add_scaled(
                 next, state, projected,
                 weight(model, block_name(block, ".ls1.gamma")),
@@ -104,16 +130,18 @@ GpuEncoderOutput encoder_single_view_gpu(
                 weight(model, block_name(block, ".norm2.weight")),
                 weight(model, block_name(block, ".norm2.bias")),
                 tokens, kEmbedding, 1.0e-6f);
-            operators.linear(
-                hidden, normalized,
-                weight(model, block_name(block, ".mlp.fc1.weight")),
-                weight(model, block_name(block, ".mlp.fc1.bias")),
+            // The existing GELU kernel remains FP32; INT8 accelerates both
+            // matrix products while preserving the activation numerics.
+            transformer_linear(
+                operators, model, hidden, normalized,
+                block_name(block, ".mlp.fc1.weight"),
+                block_name(block, ".mlp.fc1.bias"),
                 tokens, kEmbedding, kEmbedding * 4, true);
-            operators.linear(
-                projected, hidden,
-                weight(model, block_name(block, ".mlp.fc2.weight")),
-                weight(model, block_name(block, ".mlp.fc2.bias")),
-                tokens, kEmbedding * 4, kEmbedding, false);
+            transformer_linear(
+                operators, model, projected, hidden,
+                block_name(block, ".mlp.fc2.weight"),
+                block_name(block, ".mlp.fc2.bias"),
+                tokens, kEmbedding * 4, kEmbedding);
             operators.add_scaled(
                 next, state, projected,
                 weight(model, block_name(block, ".ls2.gamma")),
@@ -143,6 +171,7 @@ GpuEncoderOutput encoder_single_view_gpu(
     if (result.features.size() != 4) {
         throw std::runtime_error("DA3 GPU encoder did not capture four features");
     }
+    model.retain_transformer_precision(half_weight);
     return result;
 }
 

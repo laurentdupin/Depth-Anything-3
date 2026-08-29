@@ -1,5 +1,7 @@
 #include "dpt_gpu.h"
 
+#include <inferbridge/native_harness_precision.h>
+
 #include <stdexcept>
 #include <string>
 #include <utility>
@@ -14,6 +16,17 @@ std::uint64_t elements(const GpuFeatureMap& value) {
 
 const VulkanBuffer& weight(const GpuModel& model, const std::string& name) {
     return model.tensor(name).buffer;
+}
+
+const VulkanBuffer& convolution_weight(
+    const GpuModel& model, const std::string& name) {
+    const GpuTensor& tensor = model.tensor(name);
+    return tensor.half_buffer.handle() != VK_NULL_HANDLE
+        ? tensor.half_buffer : tensor.buffer;
+}
+
+bool half_weight(const GpuModel& model, const std::string& name) {
+    return model.tensor(name).half_buffer.handle() != VK_NULL_HANDLE;
 }
 
 GpuFeatureMap conv(
@@ -34,10 +47,11 @@ GpuFeatureMap conv(
         output_channels,
     };
     operators.conv2d(
-        output.buffer, input.buffer, weight(model, weight_name),
+        output.buffer, input.buffer, convolution_weight(model, weight_name),
         has_bias ? weight(model, bias_name) : zero_bias,
         input.width, input.height, input.channels, output_channels,
-        kernel, stride, padding, has_bias);
+        kernel, stride, padding, has_bias, false,
+        half_weight(model, weight_name));
     return output;
 }
 
@@ -149,10 +163,11 @@ GpuFeatureMap depth_head_single_view_gpu(
                     "model.head.resize_layers." + std::to_string(index);
                 operators.conv_transpose_nonoverlap(
                     resized.buffer, projected.buffer,
-                    weight(model, resize + ".weight"),
+                    convolution_weight(model, resize + ".weight"),
                     weight(model, resize + ".bias"),
                     projected.width, projected.height,
-                    projected.channels, projected.channels, kernel);
+                    projected.channels, projected.channels, kernel,
+                    half_weight(model, resize + ".weight"));
                 layers[index] = std::move(resized);
             } else if (index == 2) {
                 layers[index] = std::move(projected);
@@ -234,6 +249,7 @@ GpuFeatureMap depth_head_single_view_gpu(
         operators.exponential(
             path.buffer, image_width * image_height);
     });
+    model.retain_dpt_precision(model.uses_half_weights());
     return path;
 }
 

@@ -72,6 +72,13 @@ if(DA3_WITH_VULKAN)
             normalize_depth_image)
         da3_compile_shader(${SHADER})
     endforeach()
+    foreach(SHARED_SHADER quantize_rows_int8 linear_int8_tiled)
+        inferbridge_compile_native_support_shader(
+            NAME "${SHARED_SHADER}" PREFIX da3
+            GENERATED_DIR "${DA3_GENERATED_DIR}"
+            EMBED_SCRIPT "${CMAKE_CURRENT_SOURCE_DIR}/cmake/embed_binary.cmake"
+            OUT_VAR DA3_SHADER_HEADERS)
+    endforeach()
 endif()
 
 add_library(depth_anything_3_native SHARED

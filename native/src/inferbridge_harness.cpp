@@ -3,6 +3,7 @@
 
 #include "da3_native.h"
 #include "da3_internal.h"
+#include "inferbridge/native_harness_precision.h"
 
 #include <atomic>
 #include <cstdint>
@@ -264,6 +265,13 @@ ibrh_result IBRH_CALL model_load(
             "DA3 model path is missing");
     const std::string path = copy_string(request->model_path);
     const std::string parameters = copy_string(request->parameters_json);
+    inferbridge::native::Precision precision;
+    try {
+        precision = inferbridge::native::precision_from_parameters_json(parameters);
+    } catch (const std::exception& error) {
+        return fail(runtime, IBRH_ERROR_INVALID_ARGUMENT, error.what());
+    }
+    const inferbridge::native::ScopedPrecisionRequest precision_scope(precision);
     auto* model = new (std::nothrow) ibrh_model();
     if (model == nullptr) return IBRH_ERROR_INTERNAL;
     model->runtime = runtime;
@@ -338,9 +346,11 @@ ibrh_result IBRH_CALL submit(ibrh_model* model,size_t request_size,const ibrh_su
      target.synchronization.kind!=IBRH_SYNC_D3D12_FENCE||target.synchronization.operation!=IBRH_SYNC_SIGNAL)return IBRH_ERROR_UNSUPPORTED_CAPABILITY;
   auto* job=new(std::nothrow)ibrh_job();if(!job)return IBRH_ERROR_INTERNAL;
   try{std::lock_guard<std::mutex> lock(model->submit_mutex);job->gpu_job=da3_native::submit_external_texture(model->context,
-   {static_cast<uintptr_t>(input.native_handle),input.width,input.height,resolution,
+   {static_cast<uintptr_t>(input.native_handle),
+    input.auxiliary_handle,input.width,input.height,resolution,
     static_cast<uintptr_t>(source.synchronization.native_handle),source.synchronization.value,
-    static_cast<uintptr_t>(destination.native_handle),destination.width,destination.height,
+    static_cast<uintptr_t>(destination.native_handle),
+    destination.auxiliary_handle,destination.width,destination.height,
     static_cast<uintptr_t>(target.synchronization.native_handle),target.synchronization.value,
     request->source_frame_id,request->timestamp_ns});}
   catch(const std::invalid_argument& e){delete job;return fail(model->runtime,IBRH_ERROR_INVALID_ARGUMENT,e.what());}
