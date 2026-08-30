@@ -7,6 +7,9 @@
 #if defined(DA3_WITH_VULKAN)
 #include "da3_internal.h"
 #endif
+#if defined(DA3_WITH_METAL)
+#include "metal_executor.h"
+#endif
 
 #include <algorithm>
 #include <filesystem>
@@ -20,6 +23,9 @@ struct da3_context {
     std::unique_ptr<da3_native::SafeTensors> model;
 #if defined(DA3_WITH_VULKAN)
     std::shared_ptr<da3_native::ExternalGpu> external_gpu;
+#endif
+#if defined(DA3_WITH_METAL)
+    std::unique_ptr<da3_native::MetalExecutor> metal_executor;
 #endif
 };
 
@@ -144,6 +150,24 @@ da3_status DA3_CALL da3_create_vulkan(
 #endif
 }
 
+da3_status DA3_CALL da3_create_metal(
+    const char* model_path, da3_context** context) {
+    if (!context) return fail(DA3_STATUS_INVALID_ARGUMENT, "context is null");
+    *context = nullptr;
+    if (!model_path || model_path[0] == '\0')
+        return fail(DA3_STATUS_INVALID_ARGUMENT, "model path is empty");
+#if !defined(DA3_WITH_METAL)
+    return fail(DA3_STATUS_UNSUPPORTED, "this library was built without Metal");
+#else
+    return protect([&] {
+        auto result = std::make_unique<da3_context>();
+        result->metal_executor = std::make_unique<da3_native::MetalExecutor>(
+            resolve_model_path(model_path));
+        *context = result.release();
+    });
+#endif
+}
+
 void DA3_CALL da3_destroy(da3_context* context) {
     delete context;
 }
@@ -159,6 +183,9 @@ da3_status DA3_CALL da3_infer_tensor_f32(
 #if defined(DA3_WITH_VULKAN)
             && !context->external_gpu
 #endif
+#if defined(DA3_WITH_METAL)
+            && !context->metal_executor
+#endif
         ) || !input || !depth ||
         width <= 0 || height <= 0 ||
         width % 14 != 0 || height % 14 != 0 ||
@@ -173,6 +200,14 @@ da3_status DA3_CALL da3_infer_tensor_f32(
             context->external_gpu->infer(
                 input, static_cast<std::uint32_t>(width),
                 static_cast<std::uint32_t>(height), depth);
+            return;
+        }
+#endif
+#if defined(DA3_WITH_METAL)
+        if (context->metal_executor) {
+            context->metal_executor->infer(
+                input, static_cast<std::uint32_t>(width),
+                static_cast<std::uint32_t>(height), depth, depth_elements);
             return;
         }
 #endif
@@ -223,6 +258,9 @@ da3_status DA3_CALL da3_infer_bgra8_f32(
 #if defined(DA3_WITH_VULKAN)
             && !context->external_gpu
 #endif
+#if defined(DA3_WITH_METAL)
+            && !context->metal_executor
+#endif
         ) || !bgra || !depth ||
         image_width <= 0 || image_height <= 0 ||
         process_resolution <= 0 ||
@@ -253,6 +291,13 @@ da3_status DA3_CALL da3_infer_bgra8_f32(
         if (context->external_gpu) {
             context->external_gpu->infer(
                 prepared.data(), shape.width, shape.height, depth);
+        } else
+#endif
+#if defined(DA3_WITH_METAL)
+        if (context->metal_executor) {
+            context->metal_executor->infer(
+                prepared.data(), shape.width, shape.height,
+                depth, depth_elements);
         } else
 #endif
         {

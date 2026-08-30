@@ -58,6 +58,9 @@ DA3_API da3_status DA3_CALL da3_create_vulkan(
     const char* model_safetensors_path_utf8,
     uint32_t device_index,
     da3_context** context);
+DA3_API da3_status DA3_CALL da3_create_metal(
+    const char* model_safetensors_path_utf8,
+    da3_context** context);
 DA3_API void DA3_CALL da3_destroy(da3_context* context);
 /*
  * Executes the lean single-view depth graph used by InferBridge. Input is

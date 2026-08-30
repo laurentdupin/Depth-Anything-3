@@ -282,16 +282,21 @@ ibrh_result IBRH_CALL model_load(
             "DA3 Size must be an integer from 1 to 4096");
     }
     const da3_status status =
+#if defined(DA3_WITH_METAL)
+        da3_create_metal(path.c_str(), &model->context);
+#else
         da3_create_vulkan(
             path.c_str(),
             static_cast<uint32_t>(runtime->vulkan_device_index),
             &model->context);
+#endif
     if (status != DA3_STATUS_OK) {
         const std::string message =
             std::string("DA3 model load failed: ") + da3_last_error();
         delete model;
         return fail(runtime, status_result(status), message);
     }
+#if defined(DA3_WITH_VULKAN) && defined(_WIN32)
     if (runtime->adapter_luid != 0u) {
         const auto capabilities =
             da3_native::context_external_capabilities(model->context);
@@ -304,6 +309,7 @@ ibrh_result IBRH_CALL model_load(
                 "DA3 loaded on a GPU other than the requested device");
         }
     }
+#endif
     *output = model;
     return IBRH_OK;
 }

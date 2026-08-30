@@ -18,6 +18,7 @@ endif()
 
 option(DA3_WITH_VULKAN
     "Build the dependency-free Vulkan executor" ON)
+option(DA3_WITH_METAL "Build the Apple Metal/MPSGraph executor" ${APPLE})
 
 if(DA3_WITH_VULKAN)
     find_package(Vulkan REQUIRED COMPONENTS glslc)
@@ -88,6 +89,17 @@ add_library(depth_anything_3_native SHARED
     src/safetensors.cpp
     src/encoder_cpu.cpp
     src/dpt_cpu.cpp)
+if(DA3_WITH_METAL)
+    if(NOT APPLE)
+        message(FATAL_ERROR "DA3_WITH_METAL requires an Apple platform")
+    endif()
+    target_sources(depth_anything_3_native PRIVATE src/metal_executor.mm)
+    target_link_libraries(depth_anything_3_native PRIVATE
+        "-framework Foundation" "-framework Metal"
+        "-framework MetalPerformanceShadersGraph")
+    target_compile_definitions(
+        depth_anything_3_native PRIVATE DA3_WITH_METAL=1)
+endif()
 if(DA3_WITH_VULKAN)
     target_sources(depth_anything_3_native PRIVATE
         src/vulkan.cpp
@@ -170,6 +182,15 @@ if(BUILD_TESTING)
     add_test(NAME da3_harness_full_graph COMMAND da3_harness_full_graph)
     set_tests_properties(
         da3_harness_full_graph PROPERTIES SKIP_RETURN_CODE 77)
+    if(APPLE AND DA3_WITH_METAL)
+        add_executable(da3_metal_full_graph tests/metal_full_graph.cpp)
+        target_link_libraries(
+            da3_metal_full_graph PRIVATE depth_anything_3_native)
+        target_include_directories(da3_metal_full_graph PRIVATE include)
+        add_test(NAME da3_metal_full_graph COMMAND da3_metal_full_graph)
+        set_tests_properties(
+            da3_metal_full_graph PROPERTIES SKIP_RETURN_CODE 77)
+    endif()
     if(DA3_WITH_VULKAN)
         if(WIN32)
             add_executable(
