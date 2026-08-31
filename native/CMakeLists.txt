@@ -94,6 +94,8 @@ if(DA3_WITH_METAL)
         message(FATAL_ERROR "DA3_WITH_METAL requires an Apple platform")
     endif()
     target_sources(depth_anything_3_native PRIVATE src/metal_executor.mm)
+    set_source_files_properties(src/metal_executor.mm PROPERTIES
+        COMPILE_OPTIONS "-fobjc-arc")
     target_link_libraries(depth_anything_3_native PRIVATE
         "-framework Foundation" "-framework Metal"
         "-framework MetalPerformanceShadersGraph")

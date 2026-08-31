@@ -29,6 +29,7 @@ struct ExternalTextureRequest {
     std::uint64_t signal_fence_value = 0;
     std::uint64_t source_frame_id = 0;
     std::uint64_t timestamp_ns = 0;
+    bool rgba = false;
 };
 
 enum class ExternalJobState {

@@ -4,7 +4,7 @@
 #include "encoder_cpu.h"
 #include "image.h"
 #include "safetensors.h"
-#if defined(DA3_WITH_VULKAN)
+#if defined(DA3_WITH_VULKAN) || defined(DA3_WITH_METAL)
 #include "da3_internal.h"
 #endif
 #if defined(DA3_WITH_METAL)
@@ -346,31 +346,52 @@ da3_status DA3_CALL da3_get_transfer_counters(
 
 }  // extern "C"
 
-#if defined(DA3_WITH_VULKAN)
+#if defined(DA3_WITH_VULKAN) || defined(DA3_WITH_METAL)
 namespace da3_native {
 
 ExternalGpuCapabilities context_external_capabilities(
     const da3_context* context) {
+#if defined(DA3_WITH_VULKAN)
     return context != nullptr && context->external_gpu
         ? context->external_gpu->capabilities()
         : ExternalGpuCapabilities{};
+#else
+    return context != nullptr && context->metal_executor
+        ? ExternalGpuCapabilities{true, 0u, 3u}
+        : ExternalGpuCapabilities{};
+#endif
 }
 
 std::shared_ptr<ExternalJob> submit_external_texture(
     da3_context* context,
     const ExternalTextureRequest& request) {
-    if (context == nullptr || !context->external_gpu)
+    if (context == nullptr)
+        throw std::runtime_error("DA3 context is null");
+#if defined(DA3_WITH_VULKAN)
+    if (!context->external_gpu)
         throw std::runtime_error("DA3 context has no Vulkan executor");
     return context->external_gpu->submit_texture(request);
+#else
+    if (!context->metal_executor)
+        throw std::runtime_error("DA3 context has no Metal executor");
+    return context->metal_executor->submit_texture(request);
+#endif
 }
 
 void context_transfer_counters(
     const da3_context* context,
     std::uint64_t& upload_bytes,
     std::uint64_t& download_bytes) {
-    if (context == nullptr || !context->external_gpu)
+    if (context == nullptr)
+        throw std::runtime_error("DA3 context is null");
+#if defined(DA3_WITH_VULKAN)
+    if (!context->external_gpu)
         throw std::runtime_error("DA3 context has no Vulkan executor");
     context->external_gpu->transfer_counters(upload_bytes, download_bytes);
+#else
+    upload_bytes = 0u;
+    download_bytes = 0u;
+#endif
 }
 
 }  // namespace da3_native
