@@ -484,13 +484,16 @@ public:
         graph_device_ = [MPSGraphDevice deviceWithMTLDevice:device_];
         if (device_ == nil || queue_ == nil || graph_device_ == nil)
             throw std::runtime_error("Metal is unavailable for Depth Anything V3");
+        inferbridge::native_harness::metal::label_queue(
+            queue_, "Depth Anything V3");
         const auto precision = inferbridge::native::requested_precision();
         if (precision == inferbridge::native::Precision::int8)
             throw std::invalid_argument("Depth Anything V3 Metal does not support INT8");
         fp16_ = precision == inferbridge::native::Precision::fp16 ||
             precision == inferbridge::native::Precision::automatic;
         texture_pipeline_ = std::make_unique<
-            inferbridge::native_harness::metal::TexturePipeline>(device_);
+            inferbridge::native_harness::metal::TexturePipeline>(
+                device_, "Depth Anything V3");
     }
 
     void infer(const float* input, std::uint32_t width, std::uint32_t height,
@@ -547,16 +550,6 @@ public:
                 texture_request, network.width, network.height,
                 mean, deviation);
             Plan& plan = get_presentation_plan(network.width, network.height);
-            prepared.input_data = [[MPSGraphTensorData alloc]
-                initWithMTLBuffer:prepared.input_buffer
-                shape:shape({1, 3, static_cast<NSInteger>(network.height),
-                    static_cast<NSInteger>(network.width)})
-                dataType:MPSDataTypeFloat32];
-            prepared.output_data = [[MPSGraphTensorData alloc]
-                initWithMTLBuffer:prepared.output_buffer
-                shape:shape({1, 1, static_cast<NSInteger>(network.height),
-                    static_cast<NSInteger>(network.width)})
-                dataType:MPSDataTypeFloat32];
             MPSGraphExecutableExecutionDescriptor* descriptor =
                 [MPSGraphExecutableExecutionDescriptor new];
             descriptor.waitUntilCompleted = NO;
