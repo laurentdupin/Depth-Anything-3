@@ -1,4 +1,5 @@
 #include "encoder_gpu.h"
+#include "inferbridge/native_harness_environment.h"
 #include "inferbridge/native_harness_precision.h"
 
 #include <stdexcept>
@@ -62,8 +63,13 @@ GpuEncoderOutput encoder_single_view_gpu(
     VulkanBuffer normalized = context.create_device_buffer(bytes);
     VulkanBuffer attended = context.create_device_buffer(bytes);
     VulkanBuffer projected = context.create_device_buffer(bytes);
-    VulkanBuffer qkv = context.create_device_buffer(bytes * 3);
     VulkanBuffer hidden = context.create_device_buffer(bytes * 4);
+    const bool alias_qkv =
+        inferbridge::native_harness::scratch_aliasing_enabled();
+    VulkanBuffer qkv_storage = alias_qkv
+        ? VulkanBuffer{}
+        : context.create_device_buffer(bytes * 3);
+    VulkanBuffer& qkv = alias_qkv ? hidden : qkv_storage;
     VulkanBuffer local = context.create_device_buffer(bytes);
     VulkanBuffer scores = context.create_device_buffer(
         std::uint64_t(kHeads) * tokens * tokens * sizeof(float));
