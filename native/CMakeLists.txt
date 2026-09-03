@@ -73,7 +73,7 @@ if(DA3_WITH_VULKAN)
             normalize_depth_image)
         da3_compile_shader(${SHADER})
     endforeach()
-    foreach(SHARED_SHADER quantize_rows_int8 linear_int8_tiled)
+    foreach(SHARED_SHADER conv2d_tiled4 quantize_rows_int8 linear_int8_tiled)
         inferbridge_compile_native_support_shader(
             NAME "${SHARED_SHADER}" PREFIX da3
             GENERATED_DIR "${DA3_GENERATED_DIR}"

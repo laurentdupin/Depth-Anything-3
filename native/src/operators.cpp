@@ -1,4 +1,5 @@
 #include "operators.h"
+#include "inferbridge/native_harness_environment.h"
 #include "inferbridge/native_harness_precision.h"
 
 #include "add_scaled_spv.h"
@@ -10,6 +11,7 @@
 #include "bmm_score_half_spv.h"
 #include "bmm_value_half_spv.h"
 #include "conv2d_spv.h"
+#include "conv2d_tiled4_spv.h"
 #include "conv2d8_spv.h"
 #include "conv2d_half_spv.h"
 #include "conv2d8_half_spv.h"
@@ -182,6 +184,11 @@ VulkanOperators::VulkanOperators(VulkanContext& context)
           20)),
       conv2d_(context.create_pipeline(
           da3_conv2d_spv, da3_conv2d_spv_size, 4, 48)),
+      conv2d_tiled4_(context.create_pipeline(
+          da3_conv2d_tiled4_spv,
+          da3_conv2d_tiled4_spv_size,
+          4,
+          48)),
       conv2d8_(context.create_pipeline(
           da3_conv2d8_spv, da3_conv2d8_spv_size, 4, 48)),
       conv2d_half_(context.create_pipeline(
@@ -254,6 +261,7 @@ VulkanOperators::VulkanOperators(VulkanContext& context)
     project_tokens_half_.set_debug_name(
         "project_tokens_half");
     conv2d_.set_debug_name("conv2d");
+    conv2d_tiled4_.set_debug_name("conv2d_tiled4");
     conv2d8_.set_debug_name("conv2d8");
     conv2d_half_.set_debug_name("conv2d_half");
     conv2d8_half_.set_debug_name("conv2d8_half");
@@ -819,10 +827,17 @@ void VulkanOperators::conv2d(
         has_bias ? 1u : 0u,
         batches, output_channel_blocks,
     };
+    const bool tiled4 = !half_weight && !block8 &&
+        !inferbridge::native_harness::environment_flag_enabled(
+            "INFERBRIDGE_DISABLE_TILED_CONVOLUTION") &&
+        kernel == 3 && stride == 1 && padding == 1 &&
+        output_width == input_width && output_height == input_height;
     context_.dispatch(
-        half_weight
-            ? (block8 ? conv2d8_half_ : conv2d_half_)
-            : (block8 ? conv2d8_ : conv2d_),
+        tiled4
+            ? conv2d_tiled4_
+            : half_weight
+                ? (block8 ? conv2d8_half_ : conv2d_half_)
+                : (block8 ? conv2d8_ : conv2d_),
         {&output, &input, &weight, &bias},
         &parameters,
         sizeof(parameters),
