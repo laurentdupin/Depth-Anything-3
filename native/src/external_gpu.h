@@ -1,4 +1,7 @@
 #pragma once
+#if defined(__linux__) && !defined(__ANDROID__)
+#include <inferbridge/linux_capture_vulkan.h>
+#endif
 
 #include <cstdint>
 #include <memory>
@@ -45,7 +48,11 @@ public:
     virtual void cancel() = 0;
 };
 
-class ExternalGpu : public std::enable_shared_from_this<ExternalGpu> {
+class ExternalGpu : public std::enable_shared_from_this<ExternalGpu>
+#if defined(__linux__) && !defined(__ANDROID__)
+    , public inferbridge::linux_capture::Consumer
+#endif
+{
 public:
     virtual ~ExternalGpu() = default;
     virtual void infer(

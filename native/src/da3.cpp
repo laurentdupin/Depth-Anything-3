@@ -396,3 +396,5 @@ void context_transfer_counters(
 
 }  // namespace da3_native
 #endif
+
+#include "linux_capture.inl"

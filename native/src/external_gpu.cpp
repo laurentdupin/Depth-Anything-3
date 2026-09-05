@@ -139,6 +139,24 @@ public:
             static_cast<std::size_t>(width) * height * sizeof(float));
     }
 
+#if defined(__linux__) && !defined(__ANDROID__)
+    ibr_linux_capture_capabilities linux_capture_capabilities() const override {
+        return context_.linux_capture_capabilities();
+    }
+    void infer_linux_capture(const inferbridge::linux_capture::LinuxDmaBufImage& source,
+        uint32_t width, uint32_t height, float* output) override {
+        // width/height are the first resize; the final size rounds to patches.
+        const uint32_t final_width = std::max(1u, ((width + 7u) / 14u) * 14u);
+        const uint32_t final_height = std::max(1u, ((height + 7u) / 14u) * 14u);
+        auto image = inferbridge::linux_capture::preprocess_capture(context_, source, final_width, final_height,
+            [&](auto& tensor, const auto& input, auto w, auto h) {
+                preprocessor_.run_texture(tensor,input,width,height,w,h);
+            });
+        auto depth = depth_head_single_view_gpu(context_,gpu_model_,operators_,
+            encoder_single_view_gpu(context_,gpu_model_,operators_,image,final_width,final_height));
+        context_.download(depth.buffer,output,uint64_t(final_width)*final_height*sizeof(float));
+    }
+#endif
     ExternalGpuCapabilities capabilities() const override {
 #if defined(_WIN32)
         const VulkanExternalCapabilities& external =
