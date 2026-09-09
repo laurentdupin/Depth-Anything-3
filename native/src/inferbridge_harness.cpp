@@ -21,8 +21,8 @@
 #include <utility>
 #include <vector>
 
-class Da3MetalWorker;
-struct Da3MetalAdmission;
+class Da3GpuWorker;
+struct Da3GpuAdmission;
 
 struct ibrh_runtime {
     std::string error;
@@ -35,9 +35,9 @@ struct ibrh_model {
     da3_context* context = nullptr;
     uint32_t input_size = 280u;
     std::mutex submit_mutex;
-#if defined(__APPLE__)
-    std::shared_ptr<Da3MetalWorker> metal_worker;
-    std::shared_ptr<std::atomic<uint32_t>> metal_admissions =
+#if defined(__APPLE__) || (defined(DA3_WITH_VULKAN) && defined(_WIN32))
+    std::shared_ptr<Da3GpuWorker> gpu_worker;
+    std::shared_ptr<std::atomic<uint32_t>> gpu_admissions =
         std::make_shared<std::atomic<uint32_t>>(0u);
 #endif
 };
@@ -46,9 +46,9 @@ struct ibrh_job {
     std::atomic<uint32_t> references{1u};
     mutable std::mutex gpu_mutex;
     std::shared_ptr<da3_native::ExternalJob> gpu_job;
-#if defined(__APPLE__)
-    std::shared_ptr<Da3MetalAdmission> metal_admission;
-    std::weak_ptr<Da3MetalWorker> metal_worker;
+#if defined(__APPLE__) || (defined(DA3_WITH_VULKAN) && defined(_WIN32))
+    std::shared_ptr<Da3GpuAdmission> gpu_admission;
+    std::weak_ptr<Da3GpuWorker> gpu_worker;
     std::atomic<uint32_t> state{IBRH_JOB_COMPLETE};
     std::atomic<bool> cancel_requested{false};
     da3_native::ExternalTextureRequest texture_request{};
@@ -58,6 +58,7 @@ struct ibrh_job {
     uint32_t width = 0u;
     uint32_t height = 0u;
     std::vector<float> depth;
+    ~ibrh_job();
 };
 
 
@@ -197,19 +198,19 @@ void release_job(ibrh_job* job) {
 
 }  // namespace
 
-#if defined(__APPLE__)
-struct Da3MetalAdmission {
-    explicit Da3MetalAdmission(std::shared_ptr<std::atomic<uint32_t>> value)
+#if defined(__APPLE__) || (defined(DA3_WITH_VULKAN) && defined(_WIN32))
+struct Da3GpuAdmission {
+    explicit Da3GpuAdmission(std::shared_ptr<std::atomic<uint32_t>> value)
         : count(std::move(value)) {}
-    ~Da3MetalAdmission() { count->fetch_sub(1u); }
+    ~Da3GpuAdmission() { count->fetch_sub(1u); }
     std::shared_ptr<std::atomic<uint32_t>> count;
 };
 
-class Da3MetalWorker {
+class Da3GpuWorker {
 public:
-    explicit Da3MetalWorker(da3_context* context)
+    explicit Da3GpuWorker(da3_context* context)
         : context_(context), thread_([this] { run(); }) {}
-    ~Da3MetalWorker() { stop(); }
+    ~Da3GpuWorker() { stop(); }
 
     void enqueue(ibrh_job* job) {
         retain_job(job);
@@ -217,13 +218,20 @@ public:
             std::lock_guard<std::mutex> lock(mutex_);
             if (stopping_) {
                 release_job(job);
-                throw std::runtime_error("DA3 Metal worker is stopping");
+                throw std::runtime_error("DA3 GPU worker is stopping");
             }
             queue_.push_back(job);
         }
         condition_.notify_one();
     }
 
+    void retire(std::shared_ptr<da3_native::ExternalJob> job) {
+        {
+            std::lock_guard<std::mutex> lock(mutex_);
+            if (!exited_) retired_.push_back(std::move(job));
+        }
+        condition_.notify_one();
+    }
     bool cancel_queued(ibrh_job* job) {
         bool removed = false;
         {
@@ -263,13 +271,16 @@ private:
     void run() {
         for (;;) {
             ibrh_job* job = nullptr;
+            std::deque<std::shared_ptr<da3_native::ExternalJob>> retired;
             {
                 std::unique_lock<std::mutex> lock(mutex_);
-                condition_.wait(lock, [&] { return stopping_ || !queue_.empty(); });
-                if (stopping_ && queue_.empty()) return;
-                job = queue_.front();
-                queue_.pop_front();
+                condition_.wait(lock, [&] { return stopping_ || !queue_.empty() || !retired_.empty(); });
+                if (stopping_ && queue_.empty() && retired_.empty()) { exited_ = true; return; }
+                retired.swap(retired_);
+                if (!queue_.empty()) { job = queue_.front(); queue_.pop_front(); }
             }
+            retired.clear();
+            if (!job) continue;
             if (job->cancel_requested.load()) {
                 job->state.store(IBRH_JOB_CANCELLED);
                 release_job(job);
@@ -294,10 +305,22 @@ private:
     std::mutex mutex_;
     std::condition_variable condition_;
     std::deque<ibrh_job*> queue_;
+    std::deque<std::shared_ptr<da3_native::ExternalJob>> retired_;
+    bool exited_ = false;
     bool stopping_ = false;
     std::thread thread_;
 };
 #endif
+
+ibrh_job::~ibrh_job() {
+#if defined(__APPLE__) || (defined(DA3_WITH_VULKAN) && defined(_WIN32))
+    if (gpu_job) {
+        if (auto worker = gpu_worker.lock()) worker->retire(std::move(gpu_job));
+        else gpu_job.reset();
+    }
+    gpu_admission.reset();
+#endif
+}
 
 namespace {
 
@@ -450,15 +473,15 @@ ibrh_result IBRH_CALL model_load(
         }
     }
 #endif
-#if defined(__APPLE__)
+#if defined(__APPLE__) || (defined(DA3_WITH_VULKAN) && defined(_WIN32))
     try {
-        model->metal_worker =
-            std::make_shared<Da3MetalWorker>(model->context);
+        model->gpu_worker =
+            std::make_shared<Da3GpuWorker>(model->context);
     } catch (...) {
         da3_destroy(model->context);
         delete model;
         return fail(runtime, IBRH_ERROR_INTERNAL,
-            "DA3 could not start its Metal worker");
+            "DA3 could not start its GPU worker");
     }
 #endif
     *output = model;
@@ -467,9 +490,9 @@ ibrh_result IBRH_CALL model_load(
 
 void IBRH_CALL model_unload(ibrh_model* model) {
     if (model == nullptr) return;
-#if defined(__APPLE__)
-    if (model->metal_worker) model->metal_worker->stop();
-    model->metal_worker.reset();
+#if defined(__APPLE__) || (defined(DA3_WITH_VULKAN) && defined(_WIN32))
+    if (model->gpu_worker) model->gpu_worker->stop();
+    model->gpu_worker.reset();
 #endif
     da3_destroy(model->context);
     delete model;
@@ -506,14 +529,21 @@ ibrh_result IBRH_CALL submit(ibrh_model* model,size_t request_size,const ibrh_su
      source.synchronization.kind!=IBRH_SYNC_D3D12_FENCE||source.synchronization.operation!=IBRH_SYNC_WAIT||
      target.synchronization.kind!=IBRH_SYNC_D3D12_FENCE||target.synchronization.operation!=IBRH_SYNC_SIGNAL)return IBRH_ERROR_UNSUPPORTED_CAPABILITY;
   auto* job=new(std::nothrow)ibrh_job();if(!job)return IBRH_ERROR_INTERNAL;
-  try{std::lock_guard<std::mutex> lock(model->submit_mutex);job->gpu_job=da3_native::submit_external_texture(model->context,
-   {static_cast<uintptr_t>(input.native_handle),
+  uint32_t admitted=model->gpu_admissions->load();
+  while(admitted<5u&&!model->gpu_admissions->compare_exchange_weak(admitted,admitted+1u)){}
+  if(admitted>=5u){delete job;return IBRH_ERROR_INVALID_STATE;}
+  try{job->gpu_admission=std::make_shared<Da3GpuAdmission>(model->gpu_admissions);}
+  catch(...){model->gpu_admissions->fetch_sub(1u);delete job;return IBRH_ERROR_INTERNAL;}
+  job->source_frame_id=request->source_frame_id;job->timestamp_ns=request->timestamp_ns;
+  job->width=input.width;job->height=input.height;job->state.store(IBRH_JOB_QUEUED);
+  job->texture_request={static_cast<uintptr_t>(input.native_handle),
     input.auxiliary_handle,input.width,input.height,resolution,
     static_cast<uintptr_t>(source.synchronization.native_handle),source.synchronization.value,
     static_cast<uintptr_t>(destination.native_handle),
     destination.auxiliary_handle,destination.width,destination.height,
     static_cast<uintptr_t>(target.synchronization.native_handle),target.synchronization.value,
-    request->source_frame_id,request->timestamp_ns});}
+    request->source_frame_id,request->timestamp_ns};
+  try{job->gpu_worker=model->gpu_worker;model->gpu_worker->enqueue(job);}
   catch(const std::invalid_argument& e){delete job;return fail(model->runtime,IBRH_ERROR_INVALID_ARGUMENT,e.what());}
   catch(const std::exception& e){delete job;return fail(model->runtime,IBRH_ERROR_UNSUPPORTED_CAPABILITY,e.what());}
   job->source_frame_id=request->source_frame_id;job->timestamp_ns=request->timestamp_ns;job->width=input.width;job->height=input.height;*output=job;return IBRH_OK;}
@@ -532,13 +562,13 @@ ibrh_result IBRH_CALL submit(ibrh_model* model,size_t request_size,const ibrh_su
      signal.operation!=IBRH_SYNC_SIGNAL||
      signal.native_handle_type!=IBRH_NATIVE_HANDLE_METAL_SHARED_EVENT||
      !signal.native_handle||!signal.value)return IBRH_ERROR_UNSUPPORTED_CAPABILITY;
-  uint32_t admitted=model->metal_admissions->load();
-  while(admitted<3u&&!model->metal_admissions->compare_exchange_weak(admitted,admitted+1u)){}
+  uint32_t admitted=model->gpu_admissions->load();
+  while(admitted<3u&&!model->gpu_admissions->compare_exchange_weak(admitted,admitted+1u)){}
   if(admitted>=3u)return IBRH_ERROR_INVALID_STATE;
   auto* job=new(std::nothrow)ibrh_job();
-  if(!job){model->metal_admissions->fetch_sub(1u);return IBRH_ERROR_INTERNAL;}
-  try{job->metal_admission=std::make_shared<Da3MetalAdmission>(model->metal_admissions);}
-  catch(...){model->metal_admissions->fetch_sub(1u);delete job;return IBRH_ERROR_INTERNAL;}
+  if(!job){model->gpu_admissions->fetch_sub(1u);return IBRH_ERROR_INTERNAL;}
+  try{job->gpu_admission=std::make_shared<Da3GpuAdmission>(model->gpu_admissions);}
+  catch(...){model->gpu_admissions->fetch_sub(1u);delete job;return IBRH_ERROR_INTERNAL;}
   job->source_frame_id=request->source_frame_id;job->timestamp_ns=request->timestamp_ns;
   job->width=input.width;job->height=input.height;job->state.store(IBRH_JOB_QUEUED);
   job->texture_request={static_cast<uintptr_t>(input.native_handle),input.auxiliary_handle,
@@ -546,7 +576,7 @@ ibrh_result IBRH_CALL submit(ibrh_model* model,size_t request_size,const ibrh_su
    static_cast<uintptr_t>(destination.native_handle),destination.auxiliary_handle,
    destination.width,destination.height,static_cast<uintptr_t>(signal.native_handle),signal.value,
    request->source_frame_id,request->timestamp_ns,input.pixel_format==IBRH_PIXEL_RGBA8};
-  try{job->metal_worker=model->metal_worker;model->metal_worker->enqueue(job);}
+  try{job->gpu_worker=model->gpu_worker;model->gpu_worker->enqueue(job);}
   catch(...){delete job;return IBRH_ERROR_INVALID_STATE;}
   *output=job;return IBRH_OK;}
 #endif
@@ -590,7 +620,7 @@ ibrh_result IBRH_CALL job_poll(
                 break;
         }
     } else {
-#if defined(__APPLE__)
+#if defined(__APPLE__) || (defined(DA3_WITH_VULKAN) && defined(_WIN32))
         status->state = job->state.load();
 #else
         status->state = IBRH_JOB_COMPLETE;
@@ -603,9 +633,9 @@ ibrh_result IBRH_CALL job_poll(
 
 ibrh_result IBRH_CALL job_cancel(ibrh_job* job) {
     if (job == nullptr) return IBRH_ERROR_INVALID_ARGUMENT;
-#if defined(__APPLE__)
+#if defined(__APPLE__) || (defined(DA3_WITH_VULKAN) && defined(_WIN32))
     job->cancel_requested.store(true);
-    if (auto worker = job->metal_worker.lock();
+    if (auto worker = job->gpu_worker.lock();
         worker && worker->cancel_queued(job)) return IBRH_OK;
 #endif
     std::shared_ptr<da3_native::ExternalJob> gpu_job;
@@ -613,7 +643,7 @@ ibrh_result IBRH_CALL job_cancel(ibrh_job* job) {
         std::lock_guard<std::mutex> lock(job->gpu_mutex);
         gpu_job = job->gpu_job;
     }
-    if (!gpu_job) return IBRH_ERROR_INVALID_STATE;
+    if (!gpu_job) return IBRH_OK;
     gpu_job->cancel();
     return IBRH_OK;
 }
