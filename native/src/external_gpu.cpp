@@ -187,8 +187,8 @@ public:
         if (!request.shared_texture_handle || !request.wait_fence_handle ||
             !request.output_texture_handle || !request.signal_fence_handle ||
             !request.width || !request.height || !request.process_resolution ||
-            request.output_width != request.width ||
-            request.output_height != request.height)
+            !request.output_width ||
+            !request.output_height)
             throw std::invalid_argument("invalid DA3 GPU texture request");
         const ImageShape shape = inferbridge_image_shape(
             request.width, request.height, request.process_resolution);
@@ -263,7 +263,7 @@ public:
                             shape.width, shape.height));
                     output_.resize_and_normalize(
                         output, depth.buffer, depth.width, depth.height,
-                        request.width, request.height);
+                        request.output_width, request.output_height);
                     context_.release_external_image(
                         input, VK_IMAGE_LAYOUT_SHADER_READ_ONLY_OPTIMAL,
                         VK_ACCESS_SHADER_READ_BIT);

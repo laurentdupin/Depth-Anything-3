@@ -1,3 +1,4 @@
+#include <inferbridge/native_harness_json.h>
 
 #include "inferbridge_harness.h"
 
@@ -86,17 +87,7 @@ bool valid_string(ibrh_string_view value) {
 
 bool json_string(
     const std::string& json, const std::string& key, std::string& value) {
-    const std::string marker = "\"" + key + "\"";
-    size_t position = json.find(marker);
-    if (position == std::string::npos) return false;
-    position = json.find(':', position + marker.size());
-    if (position == std::string::npos) return false;
-    position = json.find_first_not_of(" \t\r\n", position + 1u);
-    if (position == std::string::npos || json[position] != '"') return false;
-    const size_t end = json.find('"', position + 1u);
-    if (end == std::string::npos) return false;
-    value = json.substr(position + 1u, end - position - 1u);
-    return true;
+    return inferbridge::harness_json::string_member(json, key, value);
 }
 
 bool json_uint(
@@ -513,7 +504,11 @@ ibrh_result IBRH_CALL model_plan_outputs(const ibrh_model* model,size_t size,con
  if(!model||!request||!outputs)return IBRH_ERROR_INVALID_ARGUMENT;if(size<sizeof(*request)||request->struct_size<sizeof(*request))return IBRH_ERROR_STRUCT_TOO_SMALL;
  if(capacity<1)return IBRH_ERROR_STRUCT_TOO_SMALL;if(request->input_count!=1||!request->inputs||!request->inputs[0].width||!request->inputs[0].height)return IBRH_ERROR_INVALID_ARGUMENT;
  auto r=model_get_port(model,IBRH_PORT_OUTPUT,0,sizeof(outputs[0]),&outputs[0]);if(r!=IBRH_OK)return r;
- outputs[0].width=request->inputs[0].width;outputs[0].height=request->inputs[0].height;outputs[0].flags=0;return IBRH_OK;}
+ uint32_t resolution=model->input_size;
+ if(!input_size(copy_string(request->parameters_json),resolution,resolution))return IBRH_ERROR_INVALID_ARGUMENT;
+ int32_t w=0,h=0;
+ if(da3_inferbridge_image_shape(request->inputs[0].width,request->inputs[0].height,resolution,&w,&h)!=DA3_STATUS_OK)return IBRH_ERROR_INVALID_ARGUMENT;
+ outputs[0].width=w;outputs[0].height=h;outputs[0].flags=0;return IBRH_OK;}
 
 ibrh_result IBRH_CALL submit(ibrh_model* model,size_t request_size,const ibrh_submit_request* request,ibrh_job** output){
  if(!model||!request||!output)return IBRH_ERROR_INVALID_ARGUMENT;*output=nullptr;
@@ -521,7 +516,9 @@ ibrh_result IBRH_CALL submit(ibrh_model* model,size_t request_size,const ibrh_su
  if(request->input_count!=1||!request->inputs||request->output_count!=1||!request->outputs)return IBRH_ERROR_INVALID_ARGUMENT;
  const auto& source=request->inputs[0];const auto& target=request->outputs[0];const auto& input=source.resource;const auto& destination=target.resource;
  uint32_t resolution=model->input_size;if(!input_size(copy_string(request->parameters_json),resolution,resolution))return IBRH_ERROR_INVALID_ARGUMENT;
- if(!input.width||!input.height||destination.width!=input.width||destination.height!=input.height||destination.pixel_format!=IBRH_PIXEL_DEPTH_FLOAT32)return IBRH_ERROR_INVALID_ARGUMENT;
+ int32_t planned_w=0,planned_h=0;
+ if(da3_inferbridge_image_shape(input.width,input.height,resolution,&planned_w,&planned_h)!=DA3_STATUS_OK)return IBRH_ERROR_INVALID_ARGUMENT;
+ if(!input.width||!input.height||destination.width!=uint32_t(planned_w)||destination.height!=uint32_t(planned_h)||destination.pixel_format!=IBRH_PIXEL_DEPTH_FLOAT32)return IBRH_ERROR_INVALID_ARGUMENT;
 #if defined(DA3_WITH_VULKAN) && defined(_WIN32)
  if(input.domain==IBRH_RESOURCE_DOMAIN_D3D12){
   if(destination.domain!=IBRH_RESOURCE_DOMAIN_D3D12||input.pixel_format!=IBRH_PIXEL_BGRA8||
@@ -535,7 +532,7 @@ ibrh_result IBRH_CALL submit(ibrh_model* model,size_t request_size,const ibrh_su
   try{job->gpu_admission=std::make_shared<Da3GpuAdmission>(model->gpu_admissions);}
   catch(...){model->gpu_admissions->fetch_sub(1u);delete job;return IBRH_ERROR_INTERNAL;}
   job->source_frame_id=request->source_frame_id;job->timestamp_ns=request->timestamp_ns;
-  job->width=input.width;job->height=input.height;job->state.store(IBRH_JOB_QUEUED);
+  job->width=destination.width;job->height=destination.height;job->state.store(IBRH_JOB_QUEUED);
   job->texture_request={static_cast<uintptr_t>(input.native_handle),
     input.auxiliary_handle,input.width,input.height,resolution,
     static_cast<uintptr_t>(source.synchronization.native_handle),source.synchronization.value,
@@ -546,7 +543,7 @@ ibrh_result IBRH_CALL submit(ibrh_model* model,size_t request_size,const ibrh_su
   try{job->gpu_worker=model->gpu_worker;model->gpu_worker->enqueue(job);}
   catch(const std::invalid_argument& e){delete job;return fail(model->runtime,IBRH_ERROR_INVALID_ARGUMENT,e.what());}
   catch(const std::exception& e){delete job;return fail(model->runtime,IBRH_ERROR_UNSUPPORTED_CAPABILITY,e.what());}
-  job->source_frame_id=request->source_frame_id;job->timestamp_ns=request->timestamp_ns;job->width=input.width;job->height=input.height;*output=job;return IBRH_OK;}
+  job->source_frame_id=request->source_frame_id;job->timestamp_ns=request->timestamp_ns;job->width=destination.width;job->height=destination.height;*output=job;return IBRH_OK;}
 #endif
 #if defined(DA3_WITH_METAL) && defined(__APPLE__)
  if(input.domain==IBRH_RESOURCE_DOMAIN_METAL){
@@ -570,7 +567,7 @@ ibrh_result IBRH_CALL submit(ibrh_model* model,size_t request_size,const ibrh_su
   try{job->gpu_admission=std::make_shared<Da3GpuAdmission>(model->gpu_admissions);}
   catch(...){model->gpu_admissions->fetch_sub(1u);delete job;return IBRH_ERROR_INTERNAL;}
   job->source_frame_id=request->source_frame_id;job->timestamp_ns=request->timestamp_ns;
-  job->width=input.width;job->height=input.height;job->state.store(IBRH_JOB_QUEUED);
+  job->width=destination.width;job->height=destination.height;job->state.store(IBRH_JOB_QUEUED);
   job->texture_request={static_cast<uintptr_t>(input.native_handle),input.auxiliary_handle,
    input.width,input.height,resolution,static_cast<uintptr_t>(wait.native_handle),wait.value,
    static_cast<uintptr_t>(destination.native_handle),destination.auxiliary_handle,
@@ -590,9 +587,10 @@ ibrh_result IBRH_CALL submit(ibrh_model* model,size_t request_size,const ibrh_su
  {std::lock_guard<std::mutex> lock(model->submit_mutex);status=da3_infer_bgra8_f32(model->context,bgra,input.row_stride_bytes,input.width,input.height,resolution,temporary.data(),temporary.size());}
  if(status!=DA3_STATUS_OK)return fail(model->runtime,status_result(status),da3_last_error());
  auto* depth=reinterpret_cast<float*>(static_cast<uintptr_t>(destination.native_handle)+destination.byte_offset);
- for(uint32_t y=0;y<input.height;++y)for(uint32_t x=0;x<input.width;++x)
-  depth[static_cast<uint64_t>(y)*input.width+x]=temporary[static_cast<uint64_t>(y*static_cast<uint32_t>(h)/input.height)*w+x*static_cast<uint32_t>(w)/input.width];
- auto* job=new(std::nothrow)ibrh_job();if(!job)return IBRH_ERROR_INTERNAL;job->source_frame_id=request->source_frame_id;job->timestamp_ns=request->timestamp_ns;job->width=input.width;job->height=input.height;*output=job;return IBRH_OK;
+ for(uint32_t y=0;y<destination.height;++y)
+  std::memcpy(reinterpret_cast<uint8_t*>(depth)+size_t(y)*destination.row_stride_bytes,
+   temporary.data()+size_t(y)*w,size_t(w)*sizeof(float));
+ auto* job=new(std::nothrow)ibrh_job();if(!job)return IBRH_ERROR_INTERNAL;job->source_frame_id=request->source_frame_id;job->timestamp_ns=request->timestamp_ns;job->width=destination.width;job->height=destination.height;*output=job;return IBRH_OK;
 }
 
 ibrh_result IBRH_CALL job_poll(

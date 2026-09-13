@@ -29,7 +29,7 @@ void da3_infer_linux_capture(
   for (auto &value : depth)
     value = span > 0 ? 1.f - (value - minimum) / span : 0.f;
   inferbridge::linux_capture::resize_nearest(depth.data(), shape.width,
-                                             shape.height, output, source.width,
-                                             source.height);
+                                             shape.height, output, shape.width,
+                                             shape.height);
 }
 #endif
